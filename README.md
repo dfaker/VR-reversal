@@ -20,7 +20,7 @@ Uses mpv and a plugin to display a 3D side-by-side video as a 2D video, allows y
 - MouseLook: to look around with the mouse: one click to start, move the mouse to look around and then click again to stop
 - MouseScroll: Zoom in and out
 
-The video will start at a low resolution, press `y` increase the initial quality.
+The video will start at a low resolution, press `y` increase the initial preview quality.
 
 # 'Head' Motion Logging
 Your 'head' movements in the video will be logged to a file named `3dViewHistory.txt` this is in the format of ffmpeg commands and looks like:
