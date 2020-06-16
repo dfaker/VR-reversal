@@ -25,7 +25,7 @@ local ouputPos = function()
 	end
 
 	if file_object == nil then
-		msg.error('Unable to open file for appending: ')
+		mp.error('Unable to open file for appending: ')
 		return
 	else
 		if lasttimePos == nil then
@@ -34,7 +34,7 @@ local ouputPos = function()
 		else
 			local newTimePos = mp.get_property("time-pos")
 
-			commandString = string.format("%f-%f [expr] v360 pitch %f, [expr] v360 yaw %f, [expr] v360 roll %f, [expr] v360 d_fov %f;",
+			commandString = string.format("%.3f-%.3f [expr] v360 pitch %.3f, [expr] v360 yaw %.3f, [expr] v360 roll %.3f, [expr] v360 d_fov %.3f;",
 				lasttimePos,newTimePos,pitch,yaw,roll,dfov)			
 
 			lasttimePos = newTimePos
@@ -49,10 +49,10 @@ end
 local draw_cropper = function ()
 
 	if not filterIsOn then
-		local ok, err = mp.command(string.format("async no-osd vf add @vrrev:v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=%s:yaw=%s:pitch=%s:roll=%s:w=%s*192.0:h=%s*108.0",dfov,yaw,pitch,roll,res,res))
+		local ok, err = mp.command(string.format("async no-osd vf add @vrrev:v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0",dfov,yaw,pitch,roll,res,res))
 		filterIsOn=true
 	else
-		local ok, err = mp.command(string.format("async no-osd vf set @vrrev:v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=%s:yaw=%s:pitch=%s:roll=%s:w=%s*192.0:h=%s*108.0",dfov,yaw,pitch,roll,res,res))
+		local ok, err = mp.command(string.format("async no-osd vf set @vrrev:v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0",dfov,yaw,pitch,roll,res,res))
 		filterIsOn=true
 	end
 
@@ -68,8 +68,8 @@ local mouse_pan = function ()
 	local tempMousePos = {}
 	if dragging then
 		tempMousePos.x, tempMousePos.y = mp.get_mouse_pos()
-		yaw   = yaw + ((tempMousePos.x-mousePos.x)/10)
-		pitch = pitch - ((tempMousePos.y-mousePos.y)/10)
+		yaw   = yaw + ((tempMousePos.x-mousePos.x)/10.0)
+		pitch = pitch - ((tempMousePos.y-mousePos.y)/10.0)
 		mousePos = tempMousePos
 		draw_cropper()
 	end
@@ -78,11 +78,15 @@ end
 
 local increment_res = function ()
 	res = res+1
+	mp.osd_message(string.format("Resolution: %s",res*108.0))
 	draw_cropper()
 end
 local decrement_res = function ()
 	res = res-1
 	res = math.max(1,res)
+
+	mp.osd_message(string.format("Resolution: %s",res*108.0))
+
 	draw_cropper()
 end
 
@@ -116,19 +120,27 @@ end
 
 local increment_zoom = function ()
 	dfov = dfov+1
+	dfov = math.min(180,dfov)
+	mp.osd_message(string.format("Fov: %s",dfov))
 	draw_cropper()
 end
 local decrement_zoom = function ()
 	dfov = dfov-1
+
+	dfov = math.max(1,dfov)
+
+	mp.osd_message(string.format("Fov: %s",dfov))
 	draw_cropper()
 end
 
 local onExit = function()
-	closingCommandComment = string.format('# ffmpeg -ss %s -i "%s" -to %s -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" out.webm',
+	if lasttimePos ~= nil then
+		closingCommandComment = string.format('# ffmpeg -ss %s -i "%s" -to %s -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" -preset slow -crf 17 out.mp4',
 			startTime,filename,lasttimePos
 		)
-	file_object:write(closingCommandComment .. '\n')
-
+		file_object:write(closingCommandComment .. '\n')
+		print(closingCommandComment)
+	end
 end
 
 
