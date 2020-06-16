@@ -17,6 +17,7 @@ Steps:
 - `=`,`-` zoom
 - `q` quit
 - MouseLook: to look around with the mouse: one click to start, move the mouse to look around and then click again to stop
+- MouseScroll: Zoom in and out
 
 The video will start at a low resolution, press `y` increase the initial quality.
 
