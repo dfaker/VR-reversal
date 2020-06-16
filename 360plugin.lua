@@ -135,7 +135,7 @@ end
 
 local onExit = function()
 	if lasttimePos ~= nil then
-		closingCommandComment = string.format('# ffmpeg -ss %s -i "%s" -to %s -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" -preset slow -crf 17 out.mp4',
+		closingCommandComment = string.format('# ffmpeg -y -ss %s -i "%s" -to %s -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" -avoid_negative_ts make_zero -preset slower -crf 17 out.mp4',
 			startTime,filename,lasttimePos
 		)
 		file_object:write(closingCommandComment .. '\n')
