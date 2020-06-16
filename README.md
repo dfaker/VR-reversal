@@ -38,11 +38,6 @@ Your 'head' movements in the video will be logged to a file named `3dViewHistory
 ...
 224.595089-224.611200 [expr] v360 pitch -3.500000, [expr] v360 yaw 7.100000, [expr] v360 roll 0.000000, [expr] v360 d_fov 95.000000;
 224.611200-224.627511 [expr] v360 pitch -3.200000, [expr] v360 yaw 7.100000, [expr] v360 roll 0.000000, [expr] v360 d_fov 95.000000;
+# ffmpeg -ss 188 -i videoFile.mp4 -to 224 -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" outputVideo.webm
 ```
-
-You can you the file `3dViewHistory.txt` to render out your head motions to a 2d video with the command:
-
-`ffmpeg -ss 188 -i videoFile.mp4 -to 224 -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" outputVideo.mp4`
-
-
-Where the values for `-ss 188` and `-to 224` should be the values from your 3dViewHistory.txt specifiyng the start and stop time in seconds of your view recording.
+The comment at the end of the file is the suggested ffmpeg command to convert your video tracking data into an output video, it has the start and stop times set to the times when you intitially starting changing the view of the vr 'head'.
