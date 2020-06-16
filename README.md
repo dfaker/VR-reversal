@@ -2,12 +2,13 @@
 
 Uses mpv and a plugin to display a 3D side-by-side video as a 2D video, allows you to look around and zoom within the video.
 
-Steps:
+![Example output](https://github.com/dfaker/VR-reversal/blob/master/example.gif?raw=true)
+
+# Steps:
 
 - Download the lastest mpv https://mpv.io/
 - Download the 360plugin.lua from this repo.
 - Play a video using the plugin with the command: `mpv --script=360plugin.lua videoFile.mp4`
-
 
 # Controls
 - `y` Increase resolution
