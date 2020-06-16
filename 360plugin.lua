@@ -7,21 +7,30 @@ local res  = 1.0
 local dragging = false
 local dfov=90.0
 
--- ffmpeg -ss 1367 -i "input.mp4" -to 1421 -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" out.webm
+local startTime = nil
+
+local filterIsOn = false
 
 local mousePos = {}
 local lasttimePos = nil
+local filename = nil
+
 
 local file_object = io.open('3dViewHistory.txt', 'w')
 
 local ouputPos = function()
 
+	if filename == nil then
+		filename = mp.get_property("path")
+	end
+
 	if file_object == nil then
-		msg.error('Unable to open file for appending: ' .. filename)
+		msg.error('Unable to open file for appending: ')
 		return
 	else
 		if lasttimePos == nil then
 			lasttimePos = mp.get_property("time-pos")
+			startTime   = lasttimePos
 		else
 			local newTimePos = mp.get_property("time-pos")
 
@@ -38,7 +47,15 @@ end
 
 
 local draw_cropper = function ()
-	local ok, err = mp.command(string.format("async no-osd vf add @vrrev:v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=%s:yaw=%s:pitch=%s:roll=%s:w=%s*192.0:h=%s*108.0",dfov,yaw,pitch,roll,res,res))
+
+	if not filterIsOn then
+		local ok, err = mp.command(string.format("async no-osd vf add @vrrev:v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=%s:yaw=%s:pitch=%s:roll=%s:w=%s*192.0:h=%s*108.0",dfov,yaw,pitch,roll,res,res))
+		filterIsOn=true
+	else
+		local ok, err = mp.command(string.format("async no-osd vf set @vrrev:v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=%s:yaw=%s:pitch=%s:roll=%s:w=%s*192.0:h=%s*108.0",dfov,yaw,pitch,roll,res,res))
+		filterIsOn=true
+	end
+
 	ouputPos()
 end
 
@@ -106,6 +123,14 @@ local decrement_zoom = function ()
 	draw_cropper()
 end
 
+local onExit = function()
+	closingCommandComment = string.format('# ffmpeg -ss %s -i "%s" -to %s -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" out.webm',
+			startTime,filename,lasttimePos
+		)
+	file_object:write(closingCommandComment .. '\n')
+
+end
+
 
 mp.add_forced_key_binding("u", decrement_roll, 'repeatable')
 mp.add_forced_key_binding("o", increment_roll, 'repeatable')
@@ -134,4 +159,7 @@ mp.set_property("osc", "no")
 mp.set_property("fullscreen", "yes")
 mp.add_forced_key_binding("mouse_btn0",mouse_btn0_cb)
 mp.add_forced_key_binding("mouse_move", mouse_pan)
+
+mp.register_event("shutdown", onExit)
+
 draw_cropper()
