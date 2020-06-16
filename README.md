@@ -21,7 +21,7 @@ Steps:
 
 The video will start at a low resolution, press `y` increase the initial quality.
 
-# Logging
+# 'Head' Motion Logging
 Your 'head' movements in the video will be logged to a file named `3dViewHistory.txt` this is in the format of ffmpeg commands and looks like:
 
 ```
