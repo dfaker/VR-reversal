@@ -1,6 +1,6 @@
 # VR-reversal
 
-Uses mpv to display a 3D side-by-side video as a 2D video, allows you to look around and zoom within the video.
+Uses mpv and a plugin to display a 3D side-by-side video as a 2D video, allows you to look around and zoom within the video.
 
 Steps:
 
