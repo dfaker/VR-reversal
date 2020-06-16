@@ -11,7 +11,7 @@ Uses mpv and a plugin to display a 3D side-by-side video as a 2D video, allows y
 - Play a video using the plugin with the command: `mpv --script=360plugin.lua videoFile.mp4`
 
 Alternatively rather than typing the command `mpv --script=360plugin.lua videoFile.mp4` on the command line, you may choose to:
-- Place mpv.exe and 360plugin.lua
+- Place mpv.exe and 360plugin.lua in the same folder.
 - Make a shortcut to mpv.exe in the same folder by right clicking and seelcting `Create Shortcut`
 - Right click on the shortcut and select `Properties`
 - In the field 'Target:' in the properties popup add ` --script=360plugin.lua` after mpv.exe (not forgetting the space between mpv.exe and the dashes.)
