@@ -291,7 +291,7 @@ local onExit = function()
 		file_object:write( '# Suggested ffmpeg conversion command:\n')
 
 		local closingCommandComment = string.format('# ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=hequirect:flat:in_stereo=%s:out_stereo=2d:id_fov=180.0:d_fov=110.0:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=3dViewHistory.txt" -avoid_negative_ts make_zero -preset slower -crf 17 out.mp4',
-			in_flip,startTime,filename,lasttimePos,in_stereo,ih_flip
+			startTime,filename,lasttimePos,in_flip,in_stereo,h_flip
 		)
 		file_object:write(closingCommandComment .. '\n')
 		file_object:write('#\n')
