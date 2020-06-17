@@ -37,6 +37,13 @@ Or the mouse controls:
 - MouseLook: to look around with the mouse: one click to start, move the mouse to look around and then click again to stop
 - MouseScroll: Zoom in and out
 
+Additional controls:
+
+- `r` toggle stereo mode between top/bottom and side by-side
+- `t` switch the eye you're looking through between left and right
+- `e` switch the video scaler between nearest neighbour and bicubic
+- `?` show keybaord and mouse control reminder on screen
+
 And finally when  you're done:
 
 - `q` quit
