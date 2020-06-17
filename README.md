@@ -45,6 +45,14 @@ Additional controls:
 - `g` toggle mouse smothing
 - `?` show keybaord and mouse control reminder on screen
 
+Most of the standard mpv controls are maintained:
+
+- `Arrow keys` seek through video
+- `SPACE` pause
+- `f` fullscreen toggle
+- `9`,`0` volume up and down
+- `m` mute
+
 And finally when  you're done:
 
 - `q` quit
