@@ -54,3 +54,5 @@ Your 'head' movements in the video will be logged to a file named `3dViewHistory
 # ffmpeg -ss 188 -i videoFile.mp4 -to 224 -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" -avoid_negative_ts make_zero -preset slower -crf 17 outputVideo.mp4
 ```
 The comment at the end of the file is the suggested ffmpeg command to convert your video tracking data into an output video, it has the start and stop times set to the times when you intitially started changing the view of the vr 'head' via mouse motion or keyboard input.
+
+If you have a recent ffmpeg build installed you can simply copy and paste that final command to render your session out to an .mp4 file at 1080p.
