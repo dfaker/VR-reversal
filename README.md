@@ -11,6 +11,7 @@ Uses mpv and a plugin to display a 3D side-by-side video as a 2D video, allows y
 - Play a video using the plugin with the command: `mpv --script=360plugin.lua videoFile.mp4`
 
 Alternatively rather than typing the command `mpv --script=360plugin.lua videoFile.mp4` on the command line, you may choose to:
+
 - Place mpv.exe and 360plugin.lua in the same folder.
 - Make a shortcut to mpv.exe in that same folder by right clicking and seelcting `Create Shortcut`
 - Right click on the shortcut and select `Properties`
@@ -18,16 +19,28 @@ Alternatively rather than typing the command `mpv --script=360plugin.lua videoFi
 - You may themn drag and drop videos directly onto your newly created shortcurt to play them.
 
 # Controls
+
+When the player is started, you'll be looking straight forwards. 
+The video will start at a low resolution, if you'd like more detail press `y` increase the initial preview quality `h` to reduce it again.
+
 - `y` Increase resolution
 - `h` decrease resolution
+
+Control the head motions with these keys:
+
 - `i`,`j`,`k`,`l` look around 
 - `u`,`o` roll head
 - `=`,`-` zoom
-- `q` quit
+
+Or the mouse controls:
+
 - MouseLook: to look around with the mouse: one click to start, move the mouse to look around and then click again to stop
 - MouseScroll: Zoom in and out
 
-The video will start at a low resolution, press `y` increase the initial preview quality.
+And finally when  you're done:
+
+- `q` quit
+
 
 # 'Head' Motion Logging
 Your 'head' movements in the video will be logged to a file named `3dViewHistory.txt` this is in the format of ffmpeg commands and looks like:
