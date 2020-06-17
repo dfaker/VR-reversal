@@ -55,4 +55,4 @@ Your 'head' movements in the video will be logged to a file named `3dViewHistory
 ```
 The comment at the end of the file is the suggested ffmpeg command to convert your video tracking data into an output video, it has the start and stop times set to the times when you intitially started changing the view of the vr 'head' via mouse motion or keyboard input.
 
-If you have a recent ffmpeg build installed you can simply copy and paste that final command to render your session out to an .mp4 file at 1080p.
+If you have a recent ffmpeg build installed you can simply copy and paste that final command into a terminal (excluding the leading `# `) to render your session out to an .mp4 file at 1080p.
