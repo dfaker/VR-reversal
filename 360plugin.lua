@@ -1,11 +1,21 @@
 
+
 local yaw   = 0.0
+local last_yaw = 0.0
+
 local pitch = 0.0
+local last_pitch = 0.0
+
 local roll  = 0.0
+local last_roll  = 0.0
+
+local dfov=110.0
+local last_dfov  = 110.0
+
 local doit = 0.0
 local res  = 1.0
 local dragging = false
-local dfov=90.0
+
 
 local startTime = nil
 
@@ -15,8 +25,21 @@ local mousePos = {}
 local lasttimePos = nil
 local filename = nil
 
+local fileobjectNumber = 0
+local file_object      = io.open('3dViewHistory.txt', 'w')
 
-local file_object = io.open('3dViewHistory.txt', 'w')
+function SecondsToClock(seconds)
+  local seconds = tonumber(seconds)
+
+  if seconds <= 0 then
+    return "00:00:00";
+  else
+    hours = string.format("%02.f", math.floor(seconds/3600));
+    mins = string.format("%02.f", math.floor(seconds/60 - (hours*60)));
+    secs = string.format("%02.f", math.floor(seconds - hours*3600 - mins *60));
+    return hours..":"..mins..":"..secs
+  end
+end
 
 local ouputPos = function()
 
@@ -34,11 +57,44 @@ local ouputPos = function()
 		else
 			local newTimePos = mp.get_property("time-pos")
 
-			commandString = string.format("%.3f-%.3f [expr] v360 pitch %.3f, [expr] v360 yaw %.3f, [expr] v360 roll %.3f, [expr] v360 d_fov %.3f;",
-				lasttimePos,newTimePos,pitch,yaw,roll,dfov)			
+			local outputTs = string.format("%.3f-%.3f ",lasttimePos,newTimePos)
+			local changedValues = {}
 
-			lasttimePos = newTimePos
-			file_object:write(commandString .. '\n')
+			if pitch ~= last_pitch then
+				changedValues[#changedValues+1]= string.format(", [expr] v360 pitch %.3f",pitch)
+			end 
+			last_pitch=pitch
+
+			if yaw ~= last_yaw then
+				changedValues[#changedValues+1]= string.format(", [expr] v360 yaw %.3f",yaw)
+			end 
+			last_yaw=yaw
+
+
+			if roll ~= last_roll then
+				changedValues[#changedValues+1]= string.format(", [expr] v360 roll %.3f",roll)
+			end 
+			last_roll=roll
+
+			if dfov ~= last_dfov then
+				changedValues[#changedValues+1]= string.format(", [expr] v360 d_fov %.3f",dfov)
+			end 
+			last_dfov=dfov
+
+			if #changedValues > 0 then
+				local commandString = ''
+				for k,changedValue in pairs(changedValues) do
+					commandString = commandString .. changedValue
+				end
+
+				commandString = commandString:sub(2)
+	
+				commandString = outputTs .. commandString .. ';'
+
+				file_object:write(commandString .. '\n')	
+				lasttimePos = newTimePos
+			end
+			
 		end
 
 	end
@@ -135,11 +191,25 @@ end
 
 local onExit = function()
 	if lasttimePos ~= nil then
-		closingCommandComment = string.format('# ffmpeg -y -ss %s -i "%s" -to %s -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" -avoid_negative_ts make_zero -preset slower -crf 17 out.mp4',
+
+		file_object:write('#\n')
+
+ 		local stats = string.format( '# Duration: %s-%s (total %s) %s seconds', 
+			SecondsToClock(startTime),SecondsToClock(lasttimePos),SecondsToClock(lasttimePos-startTime),lasttimePos-startTime )
+		
+		file_object:write( stats  .. '\n')
+		print(stats)
+
+		file_object:write( '# Suggested ffmpeg conversion command:\n')
+
+		local closingCommandComment = string.format('# ffmpeg -y -ss %s -i "%s" -to %s -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" -avoid_negative_ts make_zero -preset slower -crf 17 out.mp4',
 			startTime,filename,lasttimePos
 		)
 		file_object:write(closingCommandComment .. '\n')
+		file_object:write('#\n')
+
 		print(closingCommandComment)
+		file_object:close()
 	end
 end
 
