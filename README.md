@@ -42,6 +42,7 @@ Additional controls:
 - `r` toggle stereo mode between top/bottom and side by-side
 - `t` switch the eye you're looking through between left and right
 - `e` switch the video scaler between nearest neighbour and bicubic
+- `g` toggle mouse smothing
 - `?` show keybaord and mouse control reminder on screen
 
 And finally when  you're done:
