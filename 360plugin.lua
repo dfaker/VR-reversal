@@ -16,6 +16,14 @@ local doit = 0.0
 local res  = 1.0
 local dragging = false
 
+local scaling   = 'near'
+
+local in_stereo = 'sbs'
+
+local h_flip    = '0'
+local in_flip   = ''
+
+local interp    = 'near'
 
 local startTime = nil
 
@@ -86,7 +94,9 @@ local ouputPos = function()
 			end 
 			last_dfov=dfov
 
-			if #changedValues > 0 then
+			local only_zoom = (pitch==0 and yaw==0 and roll == 0)
+
+			if #changedValues > 0 and not only_zoom then
 				local commandString = ''
 				for k,changedValue in pairs(changedValues) do
 					commandString = commandString .. changedValue
@@ -110,10 +120,10 @@ end
 local draw_cropper = function ()
 
 	if not filterIsOn then
-		local ok, err = mp.command(string.format("async no-osd vf add @vrrev:v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0",dfov,yaw,pitch,roll,res,res))
+		local ok, err = mp.command(string.format("async no-osd vf add @vrrev:%sv360=hequirect:flat:in_stereo=%s:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,in_stereo,dfov,yaw,pitch,roll,res,res,h_flip,scaling))
 		filterIsOn=true
 	else
-		local ok, err = mp.command(string.format("async no-osd vf set @vrrev:v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0",dfov,yaw,pitch,roll,res,res))
+		local ok, err = mp.command(string.format("async no-osd vf set @vrrev:%sv360=hequirect:flat:in_stereo=%s:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,in_stereo,dfov,yaw,pitch,roll,res,res,h_flip,scaling))
 		filterIsOn=true
 	end
 
@@ -132,18 +142,19 @@ end
 
 local mouse_pan = function ()
 	
-	local tempMousePos = {}
+	
 	if dragging then
-		local osd_w, osd_h = mp.get_property("osd-width"), mp.get_property("osd-height")
-		tempMousePos.x, tempMousePos.y = mp.get_mouse_pos()
 
-		local yawpc 	= ((tempMousePos.x/osd_w)-0.5)*180
-		local pitchpc   = -((tempMousePos.y/osd_h)-0.5)*180
+		local MousePosx, MousePosy = mp.get_mouse_pos()
+		local osd_w, osd_h = mp.get_property("osd-width"), mp.get_property("osd-height")
+
+		local yawpc 	= ((MousePosx/osd_w)-0.5)*180
+		local pitchpc   = -((MousePosy/osd_h)-0.5)*180
 
 		local updateCrop = false
 
 
-		if yaw ~= yawpc and math.abs(yaw-yawpc)<0.2 then
+		if yaw ~= yawpc and math.abs(yaw-yawpc)<0.1 then
 			yaw = yawpc
 			updateCrop=true
 		elseif yaw ~= yawpc then
@@ -151,7 +162,7 @@ local mouse_pan = function ()
 			updateCrop=true
 		end
 
-		if pitch ~= pitchpc and math.abs(pitch-pitchpc)<0.2 then
+		if pitch ~= pitchpc and math.abs(pitch-pitchpc)<0.1 then
 			pitch = pitchpc
 			updateCrop=true
 		elseif pitch ~= pitchpc then
@@ -169,6 +180,8 @@ end
 
 local increment_res = function ()
 	res = res+1
+	res = math.min(res,20)
+
 	mp.osd_message(string.format("Out-Width: %spx",res*108.0),0.5)
 	draw_cropper()
 end
@@ -223,6 +236,46 @@ local decrement_zoom = function ()
 	draw_cropper()
 end
 
+local switchScaler = function()
+	if scaling == 'near' then
+		scaling = 'cubic'
+	else
+		scaling = 'near'
+	end
+	mp.osd_message("Scaling algorithm: " .. scaling,0.5)
+	draw_cropper()
+end
+
+local switchEye = function()
+	if h_flip == '0' then
+		h_flip  = '1'
+		in_flip = 'hflip,'
+		mp.osd_message("Right eye",0.5)
+	else
+		h_flip  = '0'
+		in_flip = ''
+		mp.osd_message("Left eye",0.5)
+	end
+	print(ih_flip,h_flip)
+	draw_cropper()
+end
+
+local switchStereoMode = function()
+	if in_stereo == 'sbs' then
+		in_stereo = 'tb'
+
+	else
+		in_stereo = 'sbs'
+	end
+	mp.osd_message("Input format: " .. in_stereo,0.5)
+	draw_cropper()
+end
+
+local showHelp  = function()
+	mp.osd_message("Keyboard and Mouse Controls:\n? = show help\ny,h = adjust quality\ni,j,k,l,mouseClick = Look around\nu,i = roll head\n-,=,mouseWheel = zoom\nr = switch SetereoMode\nt = switch Eye\ne = switch Scaler ",10)
+end
+
+
 local onExit = function()
 	if lasttimePos ~= nil then
 
@@ -230,22 +283,25 @@ local onExit = function()
 
  		local stats = string.format( '# Duration: %s-%s (total %s) %s seconds', 
 			SecondsToClock(startTime),SecondsToClock(lasttimePos),SecondsToClock(lasttimePos-startTime),lasttimePos-startTime )
-		
+
+		print('#')
 		file_object:write( stats  .. '\n')
 		print(stats)
 
 		file_object:write( '# Suggested ffmpeg conversion command:\n')
 
-		local closingCommandComment = string.format('# ffmpeg -y -ss %s -i "%s" -to %s -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" -avoid_negative_ts make_zero -preset slower -crf 17 out.mp4',
-			startTime,filename,lasttimePos
+		local closingCommandComment = string.format('# ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=hequirect:flat:in_stereo=%s:out_stereo=2d:id_fov=180.0:d_fov=110.0:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=3dViewHistory.txt" -avoid_negative_ts make_zero -preset slower -crf 17 out.mp4',
+			in_flip,startTime,filename,lasttimePos,in_stereo,ih_flip
 		)
 		file_object:write(closingCommandComment .. '\n')
 		file_object:write('#\n')
 
 		print(closingCommandComment)
+		print('#')
 		file_object:close()
 	end
 end
+
 
 
 mp.add_forced_key_binding("u", decrement_roll, 'repeatable')
@@ -269,12 +325,18 @@ mp.add_forced_key_binding("-", decrement_zoom, 'repeatable')
 mp.add_forced_key_binding("WHEEL_DOWN", increment_zoom)
 mp.add_forced_key_binding("WHEEL_UP", decrement_zoom)
 
- 
+mp.add_forced_key_binding("r", switchStereoMode)
+mp.add_forced_key_binding("t", switchEye)
+mp.add_forced_key_binding("e", switchScaler)
+
 
 mp.set_property("osc", "no")
 mp.set_property("fullscreen", "yes")
 mp.add_forced_key_binding("mouse_btn0",mouse_btn0_cb)
 mp.add_forced_key_binding("mouse_move", mouse_pan)
+
+mp.add_forced_key_binding("?", showHelp)
+mp.add_forced_key_binding("/", showHelp)
 
 mp.register_event("shutdown", onExit)
 
