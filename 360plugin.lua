@@ -16,6 +16,8 @@ local doit = 0.0
 local res  = 1.0
 local dragging = false
 
+local smoothMouse = true
+
 local scaling   = 'near'
 
 local in_stereo = 'sbs'
@@ -153,21 +155,32 @@ local mouse_pan = function ()
 
 		local updateCrop = false
 
+		if smoothMouse then
+			if yaw ~= yawpc and math.abs(yaw-yawpc)<0.1 then
+				yaw = yawpc
+				updateCrop=true
+			elseif yaw ~= yawpc then
+				yaw   = (yawpc+(yaw*5))/6
+				updateCrop=true
+			end
 
-		if yaw ~= yawpc and math.abs(yaw-yawpc)<0.1 then
-			yaw = yawpc
-			updateCrop=true
-		elseif yaw ~= yawpc then
-			yaw   = (yawpc+yaw+yaw)/3
-			updateCrop=true
-		end
+			if pitch ~= pitchpc and math.abs(pitch-pitchpc)<0.1 then
+				pitch = pitchpc
+				updateCrop=true
+			elseif pitch ~= pitchpc then
+				pitch = (pitchpc+(pitch*5))/6
+				updateCrop=true
+			end
+		else
+			if yaw ~= yawpc then 
+				yaw  = yawpc
+				updateCrop=true
+			end
+			if pitch ~= pitchpc then 
+				pitch  = pitchpc
+				updateCrop=true
+			end
 
-		if pitch ~= pitchpc and math.abs(pitch-pitchpc)<0.1 then
-			pitch = pitchpc
-			updateCrop=true
-		elseif pitch ~= pitchpc then
-			pitch = (pitchpc+pitch+pitch)/3
-			updateCrop=true
 		end
 
 		if updateCrop then
@@ -236,6 +249,15 @@ local decrement_zoom = function ()
 	draw_cropper()
 end
 
+local toggleSmoothMouse  = function()
+	smoothMouse = not smoothMouse
+	if smoothMouse then
+		mp.osd_message("Mouse smothing On",0.5)
+	else
+		mp.osd_message("Mouse smothing Off",0.5)
+	end
+end
+
 local switchScaler = function()
 	if scaling == 'near' then
 		scaling = 'cubic'
@@ -272,7 +294,7 @@ local switchStereoMode = function()
 end
 
 local showHelp  = function()
-	mp.osd_message("Keyboard and Mouse Controls:\n? = show help\ny,h = adjust quality\ni,j,k,l,mouseClick = Look around\nu,i = roll head\n-,=,mouseWheel = zoom\nr = switch SetereoMode\nt = switch Eye\ne = switch Scaler ",10)
+	mp.osd_message("Keyboard and Mouse Controls:\n? = show help\ny,h = adjust quality\ni,j,k,l,mouseClick = Look around\nu,i = roll head\n-,=,mouseWheel = zoom\nr = switch SetereoMode\nt = switch Eye\ne = switch Scaler\ng = toggle mouse smothing",10)
 end
 
 
@@ -328,6 +350,7 @@ mp.add_forced_key_binding("WHEEL_UP", decrement_zoom)
 mp.add_forced_key_binding("r", switchStereoMode)
 mp.add_forced_key_binding("t", switchEye)
 mp.add_forced_key_binding("e", switchScaler)
+mp.add_forced_key_binding("g", toggleSmoothMouse)
 
 
 mp.set_property("osc", "no")
