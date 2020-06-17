@@ -51,11 +51,16 @@ local ouputPos = function()
 		mp.error('Unable to open file for appending: ')
 		return
 	else
+		
 		if lasttimePos == nil then
 			lasttimePos = mp.get_property("time-pos")
 			startTime   = lasttimePos
 		else
 			local newTimePos = mp.get_property("time-pos")
+
+			if newTimePos == nil then
+				return
+			end
 
 			local outputTs = string.format("%.3f-%.3f ",lasttimePos,newTimePos)
 			local changedValues = {}
@@ -117,31 +122,60 @@ end
 
 local mouse_btn0_cb = function ()
 	dragging = not dragging
-	mousePos.x, mousePos.y = mp.get_mouse_pos()
+	if dragging then
+		mp.set_property("cursor-autohide", "always")
+	else
+		mp.set_property("cursor-autohide", "no")
+	end 
 end
 
+
 local mouse_pan = function ()
+	
 	local tempMousePos = {}
 	if dragging then
+		local osd_w, osd_h = mp.get_property("osd-width"), mp.get_property("osd-height")
 		tempMousePos.x, tempMousePos.y = mp.get_mouse_pos()
-		yaw   = yaw + ((tempMousePos.x-mousePos.x)/10.0)
-		pitch = pitch - ((tempMousePos.y-mousePos.y)/10.0)
-		mousePos = tempMousePos
-		draw_cropper()
+
+		local yawpc 	= ((tempMousePos.x/osd_w)-0.5)*180
+		local pitchpc   = -((tempMousePos.y/osd_h)-0.5)*180
+
+		local updateCrop = false
+
+
+		if yaw ~= yawpc and math.abs(yaw-yawpc)<0.2 then
+			yaw = yawpc
+			updateCrop=true
+		elseif yaw ~= yawpc then
+			yaw   = (yawpc+yaw+yaw)/3
+			updateCrop=true
+		end
+
+		if pitch ~= pitchpc and math.abs(pitch-pitchpc)<0.2 then
+			pitch = pitchpc
+			updateCrop=true
+		elseif pitch ~= pitchpc then
+			pitch = (pitchpc+pitch+pitch)/3
+			updateCrop=true
+		end
+
+		if updateCrop then
+			draw_cropper()
+		end
+
 	end
 end
 
 
 local increment_res = function ()
 	res = res+1
-	mp.osd_message(string.format("Resolution: %s",res*108.0))
+	mp.osd_message(string.format("Out-Width: %spx",res*108.0),0.5)
 	draw_cropper()
 end
 local decrement_res = function ()
 	res = res-1
 	res = math.max(1,res)
-
-	mp.osd_message(string.format("Resolution: %s",res*108.0))
+	mp.osd_message(string.format("Out-Width: %spx",res*108.0),0.5)
 
 	draw_cropper()
 end
@@ -177,7 +211,7 @@ end
 local increment_zoom = function ()
 	dfov = dfov+1
 	dfov = math.min(180,dfov)
-	mp.osd_message(string.format("Fov: %s",dfov))
+	mp.osd_message(string.format("D-Fov: %s°",dfov),0.5)
 	draw_cropper()
 end
 local decrement_zoom = function ()
@@ -185,7 +219,7 @@ local decrement_zoom = function ()
 
 	dfov = math.max(1,dfov)
 
-	mp.osd_message(string.format("Fov: %s",dfov))
+	mp.osd_message(string.format("D-Fov: %s°",dfov),0.5)
 	draw_cropper()
 end
 
