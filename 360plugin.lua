@@ -167,10 +167,10 @@ end
 local updateFilters = function ()
 
 	if not filterIsOn then
-		local ok, err = mp.command(string.format("async no-osd vf add @vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling))
+		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, function() end)
 		filterIsOn=true
 	else
-		local ok, err = mp.command(string.format("async no-osd vf set @vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling))
+		mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, function() end)
 		filterIsOn=true
 	end
 
@@ -235,59 +235,33 @@ local mouse_pan = function ()
 	end
 end
 
-
-local increment_res = function ()
-	res = res+1
-	res = math.min(res,20)
+local increment_res = function(inc)
+	res = res+inc
+	res = math.max(math.min(res,20),1)
 
 	mp.osd_message(string.format("Out-Width: %spx",res*108.0),0.5)
 	updateFilters()
 end
-local decrement_res = function ()
-	res = res-1
-	res = math.max(1,res)
-	mp.osd_message(string.format("Out-Width: %spx",res*108.0),0.5)
 
+local increment_roll = function (inc)
+	roll = roll+inc
 	updateFilters()
+	mp.osd_message(string.format("Roll: %s°",roll),0.5)
 end
 
-
-local increment_roll = function ()
-	roll = roll+1
-	updateFilters()
-end
-local decrement_roll = function ()
-	roll = roll-1
+local increment_pitch = function (inc)
+	pitch = pitch+inc
 	updateFilters()
 end
 
-local increment_pitch = function ()
-	pitch = pitch+1
-	updateFilters()
-end
-local decrement_pitch = function ()
-	pitch = pitch-1
+local increment_yaw = function (inc)
+	yaw = yaw+inc
 	updateFilters()
 end
 
-local increment_yaw = function ()
-	yaw = yaw+1
-	updateFilters()
-end
-local decrement_yaw = function ()
-	yaw = yaw-1
-	updateFilters()
-end
-
-local increment_zoom = function ()
-	dfov = dfov+1
-	dfov = math.min(150,dfov)
-	mp.osd_message(string.format("D-Fov: %s°",dfov),0.5)
-	updateFilters()
-end
-local decrement_zoom = function ()
-	dfov = dfov-1
-	dfov = math.max(30,dfov)
+local increment_zoom = function (inc)
+	dfov = dfov+inc
+	dfov = math.max(math.min(150,dfov),30)
 	mp.osd_message(string.format("D-Fov: %s°",dfov),0.5)
 	updateFilters()
 end
@@ -300,8 +274,6 @@ local toggleSmoothMouse  = function()
 		mp.osd_message("Mouse smothing Off",0.5)
 	end
 end
-
-
 
 local switchScaler = function()
 	if scaling == 'nearest' then
@@ -454,25 +426,25 @@ local initFunction = function()
 	mp.add_forced_key_binding("1", cycleInputProjection  )
 	mp.add_forced_key_binding("2", cycleOutputProjection )
 
-	mp.add_forced_key_binding("u", decrement_roll, 'repeatable')
-	mp.add_forced_key_binding("o", increment_roll, 'repeatable')
+	mp.add_forced_key_binding("u", function() increment_roll(-1) end, 'repeatable')
+	mp.add_forced_key_binding("o", function() increment_roll(1)  end, 'repeatable')
 
 	mp.add_forced_key_binding("v", writeHeadPositionChange)
 
-	mp.add_forced_key_binding("i", increment_pitch, 'repeatable')
-	mp.add_forced_key_binding("k", decrement_pitch, 'repeatable')
-	mp.add_key_binding("l", increment_yaw, 'repeatable')
-	mp.add_key_binding("j", decrement_yaw, 'repeatable')
+	mp.add_forced_key_binding("i", function() increment_pitch(1)  end, 'repeatable')
+	mp.add_forced_key_binding("k", function() increment_pitch(-1) end, 'repeatable')
+	mp.add_key_binding("l", function() increment_yaw(1)  end, 'repeatable')
+	mp.add_key_binding("j", function() increment_yaw(-1) end, 'repeatable')
 	mp.add_key_binding("c", "easy_crop", updateFilters)
 
-	mp.add_forced_key_binding("y", increment_res, 'repeatable')
-	mp.add_forced_key_binding("h", decrement_res, 'repeatable')
+	mp.add_forced_key_binding("y", function() increment_res(1)  end, 'repeatable')
+	mp.add_forced_key_binding("h", function() increment_res(-1) end, 'repeatable')
 
-	mp.add_forced_key_binding("=", increment_zoom, 'repeatable')
-	mp.add_forced_key_binding("-", decrement_zoom, 'repeatable')
+	mp.add_forced_key_binding("=", function() increment_zoom(-1)  end, 'repeatable')
+	mp.add_forced_key_binding("-", function() increment_zoom(1) end, 'repeatable')
 
-	mp.add_forced_key_binding("WHEEL_DOWN", increment_zoom)
-	mp.add_forced_key_binding("WHEEL_UP", decrement_zoom)
+	mp.add_forced_key_binding("WHEEL_DOWN", function() increment_zoom(1)  end)
+	mp.add_forced_key_binding("WHEEL_UP",   function() increment_zoom(-1) end)
 
 	mp.add_forced_key_binding("r", switchStereoMode)
 	mp.add_forced_key_binding("t", switchEye)
