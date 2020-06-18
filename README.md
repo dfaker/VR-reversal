@@ -72,6 +72,6 @@ If you have pressed `n` during your session your 'head' movements in the video w
 ```
 The comment at the end of the file is the suggested ffmpeg command to convert your video tracking data into an output video, it has the start and stop times set to the times when you intitially started changing the view of the vr 'head' via mouse motion or keyboard input.
 
-The script will also output a combined command to convert each logged section to an output mp4 file after you exit the player.
+The script will also output a combined command to convert each logged section to an output mp4 file after you exit the player and create a batch file `convert_3dViewHistory.bat` to allow you to run the conversion automatically.
 
 If you have a recent ffmpeg build installed you can simply copy and paste that final command into a terminal (excluding the leading `# `) to render your session out to an .mp4 file at 1080p.
