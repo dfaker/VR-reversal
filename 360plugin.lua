@@ -85,13 +85,12 @@ end
 
 function SecondsToClock(seconds)
   local seconds = tonumber(seconds)
-
   if seconds <= 0 then
     return "00:00:00";
   else
     hours = string.format("%02.f", math.floor(seconds/3600));
     mins = string.format("%02.f", math.floor(seconds/60 - (hours*60)));
-    secs = string.format("%02.f", math.floor(seconds - hours*3600 - mins *60));
+    secs = string.format("%02.2f", seconds - hours*3600 - mins *60);
     return hours..":"..mins..":"..secs
   end
 end
@@ -174,6 +173,15 @@ local updateComplete = function()
 	updateAwaiting = false
 end
 
+local printRecordingStatus = function()
+	local startts = startTime
+	local endts   = lasttimePos
+	if file_object ~= nil and endts ~= nil and startts ~= nil then
+		mp.osd_message(string.format("Recording:%s",SecondsToClock(endts-startts)),10)
+	end
+end
+
+
 local updateFilters = function ()
 
 	if not filterIsOn then
@@ -186,7 +194,7 @@ local updateFilters = function ()
 		end
 		filterIsOn=true
 	end
-
+	printRecordingStatus()
 	writeHeadPositionChange()
 end
 
@@ -218,25 +226,31 @@ local mouse_pan = function ()
 			if yaw ~= yawpc and math.abs(yaw-yawpc)<0.1 then
 				yaw = yawpc
 				updateCrop=true
+				yaw = math.max(-180,math.min(180,yaw))
 			elseif yaw ~= yawpc then
 				yaw   = (yawpc+(yaw*5))/6
+				yaw = math.max(-180,math.min(180,yaw))
 				updateCrop=true
 			end
 
 			if pitch ~= pitchpc and math.abs(pitch-pitchpc)<0.1 then
 				pitch = pitchpc
+				pitch = math.max(-180,math.min(180,pitch))
 				updateCrop=true
 			elseif pitch ~= pitchpc then
 				pitch = (pitchpc+(pitch*5))/6
+				pitch = math.max(-180,math.min(180,pitch))
 				updateCrop=true
 			end
 		else
 			if yaw ~= yawpc then 
 				yaw  = yawpc
+				yaw = math.max(-180,math.min(180,yaw))
 				updateCrop=true
 			end
 			if pitch ~= pitchpc then 
 				pitch  = pitchpc
+				pitch = math.max(-180,math.min(180,pitch))
 				updateCrop=true
 			end
 
@@ -330,13 +344,13 @@ local cycleOutputProjection = function()
 	outputProjectionInd = ((outputProjectionInd+1) % (#outputProjections + 1))
 	outputProjection    = outputProjections[outputProjectionInd]
 	mp.osd_message(string.format("Output projection: %s",outputProjection),0.5)
-	updateFilters()
-end
+		updateFilters()
+	end
 
 
-local switchInputFovBounds = function()
-	if idfov == 180.0 then
-		idfov = 360.0
+	local switchInputFovBounds = function()
+		if idfov == 180.0 then
+			idfov = 360.0
 	elseif idfov == 360.0 then
 		idfov = 90.0
 	else
@@ -434,6 +448,8 @@ local onExit = function()
 	end
 end
 
+local recordingStatusTimer = nil
+
 local initFunction = function()
 
 	mp.add_forced_key_binding("1", cycleInputProjection  )
@@ -476,6 +492,8 @@ local initFunction = function()
 	mp.add_forced_key_binding("/", showHelp)
 
 	mp.register_event("shutdown", onExit)
+
+	recordingStatusTimer = mp.add_periodic_timer(0.5,printRecordingStatus)
 
 	updateFilters()
 
