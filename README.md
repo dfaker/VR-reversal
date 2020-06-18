@@ -16,7 +16,7 @@ Alternatively rather than using the command line, windows users may choose to:
 
 - Place mpv.exe, vr-reversal.bat and 360plugin.lua in the same folder.
 - Run vr-reversal.bat
-- Drag and drop videos onto the window that opens up.
+- Drag and drop videos onto the mpv window that opens up.
 
 # Controls
 
