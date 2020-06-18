@@ -25,11 +25,6 @@ local inputProjection    = "hequirect"
 
 local outputProjections = {
 	"flat",
-	"hequirect",
-	"equirect",
-	"fisheye",
-	"pannini",
-	"cylindrical",
 	"sg"
 }
 
@@ -168,7 +163,6 @@ local writeHeadPositionChange = function()
 end
 
 local updateAwaiting = false
-
 local updateComplete = function()
 	updateAwaiting = false
 end
@@ -344,12 +338,12 @@ local cycleOutputProjection = function()
 	outputProjectionInd = ((outputProjectionInd+1) % (#outputProjections + 1))
 	outputProjection    = outputProjections[outputProjectionInd]
 	mp.osd_message(string.format("Output projection: %s",outputProjection),0.5)
-		updateFilters()
-	end
+	updateFilters()
+end
 
 
-	local switchInputFovBounds = function()
-		if idfov == 180.0 then
+local switchInputFovBounds = function()
+	if idfov == 180.0 then
 			idfov = 360.0
 	elseif idfov == 360.0 then
 		idfov = 90.0
@@ -363,7 +357,6 @@ end
 local switchStereoMode = function()
 	if in_stereo == 'sbs' then
 		in_stereo = 'tb'
-
 	else
 		in_stereo = 'sbs'
 	end
