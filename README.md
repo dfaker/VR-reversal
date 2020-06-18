@@ -10,7 +10,7 @@ Uses mpv and a plugin to display a 3D side-by-side video as a 2D video, allows y
 - Download the 360plugin.lua from this repo.
 - Play a video using the plugin with the command: `mpv --script=360plugin.lua videoFile.mp4`
 
-If you want to save the videos rather than just watch them you'll need a recent version of ffmpeg from https://ffmpeg.org/ but it's not needed just for viewing.
+If you want to save the 2D versions videos rather than just watch them you'll need a recent version of ffmpeg from https://ffmpeg.org/ but it's not needed just for viewing.
 
 Alternatively rather than typing the command `mpv --script=360plugin.lua videoFile.mp4` on the command line, you may choose to:
 
