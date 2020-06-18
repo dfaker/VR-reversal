@@ -41,13 +41,14 @@ local dfov=110.0
 local last_dfov  = 110.0
 local init_dfov = 0.0
 
+
 local doit = 0.0
-local res  = 3.0
+local res  = 1.0
 local dragging = false
 
 local smoothMouse = true
 
-local scaling   = 'nearest'
+local scaling   = 'linear'
 
 local in_stereo = 'sbs'
 
@@ -65,6 +66,8 @@ local lasttimePos = nil
 local filename = nil
 
 local fileobjectNumber = 0
+local fileobjectFilename = ''
+local videofilename = ''
 local file_object      = nil
 
 local ffmpegComamndList = {}
@@ -73,7 +76,9 @@ local openNewLogFile = function()
 	if lasttimePos ~= nil then
 		fileobjectNumber = fileobjectNumber+1
 	end
-	file_object = io.open(string.format('3dViewHistory_%s.txt',fileobjectNumber), 'w')
+	videofilename = mp.get_property('filename')
+	fileobjectFilename = string.format('%s_3dViewHistory_%s.txt',videofilename,fileobjectNumber)
+	file_object = io.open(fileobjectFilename, 'w')
 	lasttimePos=nil
 end
 
@@ -119,23 +124,23 @@ local writeHeadPositionChange = function()
 		local outputTs = string.format("%.3f-%.3f ",lasttimePos,newTimePos)
 		local changedValues = {}
 
-		if pitch ~= last_pitch then
+		if initPass or pitch ~= last_pitch then
 			changedValues[#changedValues+1]= string.format(", [expr] v360 pitch %.3f",pitch)
 		end 
 		last_pitch=pitch
 
-		if yaw ~= last_yaw then
+		if initPass or yaw ~= last_yaw then
 			changedValues[#changedValues+1]= string.format(", [expr] v360 yaw %.3f",yaw)
 		end 
 		last_yaw=yaw
 
 
-		if roll ~= last_roll then
+		if initPass or roll ~= last_roll then
 			changedValues[#changedValues+1]= string.format(", [expr] v360 roll %.3f",roll)
 		end 
 		last_roll=roll
 
-		if dfov ~= last_dfov then
+		if initPass or dfov ~= last_dfov then
 			changedValues[#changedValues+1]= string.format(", [expr] v360 d_fov %.3f",dfov)
 		end 
 		last_dfov=dfov
@@ -163,14 +168,22 @@ local writeHeadPositionChange = function()
 	end
 end
 
+local updateAwaiting = false
+
+local updateComplete = function()
+	updateAwaiting = false
+end
 
 local updateFilters = function ()
 
 	if not filterIsOn then
-		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, function() end)
+		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
 		filterIsOn=true
 	else
-		mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, function() end)
+		if not updateAwaiting then
+			updateAwaiting=true
+			mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
+		end
 		filterIsOn=true
 	end
 
@@ -194,6 +207,7 @@ local mouse_pan = function ()
 
 		local MousePosx, MousePosy = mp.get_mouse_pos()
 		local osd_w, osd_h = mp.get_property("osd-width"), mp.get_property("osd-height")
+
 
 		local yawpc 	= ((MousePosx/osd_w)-0.5)*180
 		local pitchpc   = -((MousePosy/osd_h)-0.5)*180
@@ -238,7 +252,6 @@ end
 local increment_res = function(inc)
 	res = res+inc
 	res = math.max(math.min(res,20),1)
-
 	mp.osd_message(string.format("Out-Width: %spx",res*108.0),0.5)
 	updateFilters()
 end
@@ -365,8 +378,8 @@ local closeCurrentLog = function()
 
 		file_object:write( '# Suggested ffmpeg conversion command:\n')
 
-		local closingCommandComment = string.format('ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%.3f:roll=%.3f:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=3dViewHistory_%s.txt" -avoid_negative_ts make_zero -preset slower -crf 17 3dViewout_%03d.mp4',
-			startTime,filename,finalTimeStamp,in_flip,inputProjection,outputProjection,in_stereo,idfov,init_dfov,init_yaw,init_pitch,init_roll,h_flip,fileobjectNumber,fileobjectNumber
+		local closingCommandComment = string.format('ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%.3f:roll=%.3f:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=%s_3dViewHistory_%s.txt" -avoid_negative_ts make_zero -preset slower -crf 17 %s_2d_%03d.mp4',
+			startTime,filename,finalTimeStamp,in_flip,inputProjection,outputProjection,in_stereo,idfov,init_dfov,init_yaw,init_pitch,init_roll,h_flip,videofilename,fileobjectNumber,videofilename,fileobjectNumber
 		)
 
 				
@@ -389,9 +402,9 @@ local startNewLogSession = function()
 	if file_object == nil then
 		openNewLogFile()
 		writeHeadPositionChange()
-		mp.osd_message(string.format("Start Motion Record 3dViewHistory_%s.txt",fileobjectNumber),0.5)
+		mp.osd_message(string.format("Start Motion Record %s_3dViewHistory_%s.txt",videofilename,fileobjectNumber),0.5)
 	else
-		mp.osd_message(string.format("Stop Motion Record 3dViewHistory_%s.txt",fileobjectNumber),0.5)
+		mp.osd_message(string.format("Stop Motion Record %s_3dViewHistory_%s.txt",videofilename,fileobjectNumber),0.5)
 		writeHeadPositionChange()
 		local command = closeCurrentLog()
 		if command then
