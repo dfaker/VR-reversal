@@ -10,6 +10,8 @@ Uses mpv and a plugin to display a 3D side-by-side video as a 2D video, allows y
 - Download the 360plugin.lua from this repo.
 - Play a video using the plugin with the command: `mpv --script=360plugin.lua videoFile.mp4`
 
+If you want to save the videos rather than just watch them you'll need a recent version of ffmpeg from https://ffmpeg.org/ but it's not needed just for viewing.
+
 Alternatively rather than typing the command `mpv --script=360plugin.lua videoFile.mp4` on the command line, you may choose to:
 
 - Place mpv.exe and 360plugin.lua in the same folder.
@@ -57,7 +59,6 @@ Most of the standard mpv controls are maintained:
 And finally when  you're done:
 
 - `q` quit
-
 
 # 'Head' Motion Logging
 If you have pressed `n` during your session your 'head' movements in the video will be logged to a file named `3dViewHistory.txt` this is in the format of ffmpeg commands https://ffmpeg.org/
