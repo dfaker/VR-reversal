@@ -2,15 +2,19 @@
 
 local yaw   = 0.0
 local last_yaw = 0.0
+local init_yaw = 0.0
 
 local pitch = 0.0
 local last_pitch = 0.0
+local init_pitch = 0.0
 
 local roll  = 0.0
 local last_roll  = 0.0
+local init_roll = 0.0
 
 local dfov=110.0
 local last_dfov  = 110.0
+local init_dfov = 0.0
 
 local doit = 0.0
 local res  = 1.0
@@ -36,7 +40,18 @@ local lasttimePos = nil
 local filename = nil
 
 local fileobjectNumber = 0
-local file_object      = io.open('3dViewHistory.txt', 'w')
+local file_object      = nil
+
+local ffmpegComamndList = {}
+
+local openNewLogFile = function()
+	if lasttimePos ~= nil then
+		fileobjectNumber = fileobjectNumber+1
+	end
+	file_object = io.open(string.format('3dViewHistory_%s.txt',fileobjectNumber), 'w')
+	lasttimePos=nil
+end
+
 
 function SecondsToClock(seconds)
   local seconds = tonumber(seconds)
@@ -58,61 +73,70 @@ local ouputPos = function()
 	end
 
 	if file_object == nil then
-		mp.error('Unable to open file for appending: ')
 		return
-	else
-		
+	else		
+		local initPass=false
 		if lasttimePos == nil then
 			lasttimePos = mp.get_property("time-pos")
 			startTime   = lasttimePos
-		else
-			local newTimePos = mp.get_property("time-pos")
-
-			if newTimePos == nil then
+			initPass=true
+			if lasttimePos == nil then
 				return
 			end
-
-			local outputTs = string.format("%.3f-%.3f ",lasttimePos,newTimePos)
-			local changedValues = {}
-
-			if pitch ~= last_pitch then
-				changedValues[#changedValues+1]= string.format(", [expr] v360 pitch %.3f",pitch)
-			end 
-			last_pitch=pitch
-
-			if yaw ~= last_yaw then
-				changedValues[#changedValues+1]= string.format(", [expr] v360 yaw %.3f",yaw)
-			end 
-			last_yaw=yaw
-
-
-			if roll ~= last_roll then
-				changedValues[#changedValues+1]= string.format(", [expr] v360 roll %.3f",roll)
-			end 
-			last_roll=roll
-
-			if dfov ~= last_dfov then
-				changedValues[#changedValues+1]= string.format(", [expr] v360 d_fov %.3f",dfov)
-			end 
-			last_dfov=dfov
-
-			local only_zoom = (pitch==0 and yaw==0 and roll == 0)
-
-			if #changedValues > 0 and not only_zoom then
-				local commandString = ''
-				for k,changedValue in pairs(changedValues) do
-					commandString = commandString .. changedValue
-				end
-
-				commandString = commandString:sub(2)
-	
-				commandString = outputTs .. commandString .. ';'
-
-				file_object:write(commandString .. '\n')	
-				lasttimePos = newTimePos
-			end
-			
 		end
+
+		local newTimePos = mp.get_property("time-pos")
+
+		if newTimePos == nil then
+			return
+		end
+
+		local outputTs = string.format("%.3f-%.3f ",lasttimePos,newTimePos)
+		local changedValues = {}
+
+		if pitch ~= last_pitch then
+			changedValues[#changedValues+1]= string.format(", [expr] v360 pitch %.3f",pitch)
+		end 
+		last_pitch=pitch
+
+		if yaw ~= last_yaw then
+			changedValues[#changedValues+1]= string.format(", [expr] v360 yaw %.3f",yaw)
+		end 
+		last_yaw=yaw
+
+
+		if roll ~= last_roll then
+			changedValues[#changedValues+1]= string.format(", [expr] v360 roll %.3f",roll)
+		end 
+		last_roll=roll
+
+		if dfov ~= last_dfov then
+			changedValues[#changedValues+1]= string.format(", [expr] v360 d_fov %.3f",dfov)
+		end 
+		last_dfov=dfov
+
+		if initPass then
+			init_pitch = pitch
+			init_yaw   = yaw
+			init_roll  = roll
+			init_dfov  = dfov
+		end
+
+		if #changedValues > 0 then
+			local commandString = ''
+			for k,changedValue in pairs(changedValues) do
+				commandString = commandString .. changedValue
+			end
+
+			commandString = commandString:sub(2)
+
+			commandString = outputTs .. commandString .. ';'
+
+			file_object:write(commandString .. '\n')	
+			lasttimePos = newTimePos
+		end
+		
+		
 
 	end
 
@@ -294,17 +318,19 @@ local switchStereoMode = function()
 end
 
 local showHelp  = function()
-	mp.osd_message("Keyboard and Mouse Controls:\n? = show help\ny,h = adjust quality\ni,j,k,l,mouseClick = Look around\nu,i = roll head\n-,=,mouseWheel = zoom\nr = switch SetereoMode\nt = switch Eye\ne = switch Scaler\ng = toggle mouse smothing",10)
+	mp.osd_message("Keyboard and Mouse Controls:\n? = show help\ny,h = adjust quality\ni,j,k,l,mouseClick = Look around\nu,i = roll head\n-,=,mouseWheel = zoom\nr = switch SetereoMode\nt = switch Eye\ne = switch Scaler\ng = toggle mouse smothing\nn = start and stop motion recording",10)
 end
 
+local closeCurrentLog = function()
+	commandForFinalLog=''
+	if lasttimePos ~= nil  and file_object ~= nil then
 
-local onExit = function()
-	if lasttimePos ~= nil then
+		finalTimeStamp = mp.get_property("time-pos")
 
 		file_object:write('#\n')
 
  		local stats = string.format( '# Duration: %s-%s (total %s) %s seconds', 
-			SecondsToClock(startTime),SecondsToClock(lasttimePos),SecondsToClock(lasttimePos-startTime),lasttimePos-startTime )
+			SecondsToClock(startTime),SecondsToClock(finalTimeStamp),SecondsToClock(finalTimeStamp-startTime),finalTimeStamp-startTime )
 
 		print('#')
 		file_object:write( stats  .. '\n')
@@ -312,19 +338,57 @@ local onExit = function()
 
 		file_object:write( '# Suggested ffmpeg conversion command:\n')
 
-		local closingCommandComment = string.format('# ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=hequirect:flat:in_stereo=%s:out_stereo=2d:id_fov=180.0:d_fov=110.0:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=3dViewHistory.txt" -avoid_negative_ts make_zero -preset slower -crf 17 out.mp4',
-			startTime,filename,lasttimePos,in_flip,in_stereo,h_flip
+		local closingCommandComment = string.format('ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=hequirect:flat:in_stereo=%s:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%.3f:roll=%.3f:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=3dViewHistory_%s.txt" -avoid_negative_ts make_zero -preset slower -crf 17 3dViewout_%03d.mp4',
+			startTime,filename,finalTimeStamp,in_flip,in_stereo,init_dfov,init_yaw,init_pitch,init_roll,h_flip,fileobjectNumber,fileobjectNumber
 		)
-		file_object:write(closingCommandComment .. '\n')
+
+					
+
+		file_object:write('# ' .. closingCommandComment .. '\n')
 		file_object:write('#\n')
 
 		print(closingCommandComment)
 		print('#')
-		file_object:close()
+		
+
+		commandForFinalLog = closingCommandComment
 	end
+	if file_object ~= nil then
+		file_object:close()
+		file_object = nil
+	end
+	return commandForFinalLog
 end
 
+local startNewLogSession = function()
+	if file_object == nil then
+		openNewLogFile()
+		ouputPos()
+		mp.osd_message(string.format("Start Motion Record 3dViewHistory_%s.txt",fileobjectNumber),0.5)
+	else
+		mp.osd_message(string.format("Stop Motion Record 3dViewHistory_%s.txt",fileobjectNumber),0.5)
+		ouputPos()
+		local command = closeCurrentLog()
+		if command then
+			ffmpegComamndList[#ffmpegComamndList+1] = command
+		end
+	end
+		
+end
 
+local onExit = function()
+	startNewLogSession()
+	mergedCommand = ''
+	for k,v in pairs(ffmpegComamndList) do
+		if v ~= '' then
+			mergedCommand = mergedCommand .. ' & ' .. v
+		end
+	end
+	if mergedCommand ~= '' then
+		mergedCommand = mergedCommand:sub(3)
+	end
+	print(mergedCommand)
+end
 
 mp.add_forced_key_binding("u", decrement_roll, 'repeatable')
 mp.add_forced_key_binding("o", increment_roll, 'repeatable')
@@ -351,6 +415,8 @@ mp.add_forced_key_binding("r", switchStereoMode)
 mp.add_forced_key_binding("t", switchEye)
 mp.add_forced_key_binding("e", switchScaler)
 mp.add_forced_key_binding("g", toggleSmoothMouse)
+mp.add_forced_key_binding("n", startNewLogSession)
+
 
 
 mp.set_property("osc", "no")
