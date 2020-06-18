@@ -36,7 +36,7 @@ Control the head motions with these keys:
 
 Or the mouse controls:
 
-- MouseLook: to look around with the mouse: one click to start, move the mouse to look around and then click again to stop
+- MouseLook: click anywhere in the video adn your mouse position will control the camera, click again to stop mouse control
 - MouseScroll: Zoom in and out
 
 Additional controls:
