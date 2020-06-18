@@ -20,6 +20,8 @@ Alternatively rather than using the command line, windows users may choose to:
 
 # Controls
 
+You can press `?` to show all of the keyboard controls on screen at any time.
+
 When the player is started, you'll be looking straight forwards. 
 The video will start at a low resolution, if you'd like more detail press `y` increase the initial preview quality `h` to reduce it again.
 
