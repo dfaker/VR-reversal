@@ -12,6 +12,33 @@ local roll  = 0.0
 local last_roll  = 0.0
 local init_roll = 0.0
 
+local inputProjections = {
+	"hequirect",
+	"equirect",
+	"fisheye",
+	"pannini",
+	"cylindrical",
+	"sg"
+}
+local inputProjectionInd = 0
+local inputProjection    = "hequirect"
+
+local outputProjections = {
+	"flat",
+	"hequirect",
+	"equirect",
+	"fisheye",
+	"pannini",
+	"cylindrical",
+	"sg"
+}
+
+local outputProjectionInd = 0
+local outputProjection    = "flat"
+
+
+
+local idfov=180.0
 local dfov=110.0
 local last_dfov  = 110.0
 local init_dfov = 0.0
@@ -29,7 +56,7 @@ local in_stereo = 'sbs'
 local h_flip    = '0'
 local in_flip   = ''
 
-local interp    = 'near'
+local interp    = 'cubic'
 
 local startTime = nil
 
@@ -135,21 +162,17 @@ local ouputPos = function()
 			file_object:write(commandString .. '\n')	
 			lasttimePos = newTimePos
 		end
-		
-		
-
 	end
-
 end
 
 
 local draw_cropper = function ()
 
 	if not filterIsOn then
-		local ok, err = mp.command(string.format("async no-osd vf add @vrrev:%sv360=hequirect:flat:in_stereo=%s:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,in_stereo,dfov,yaw,pitch,roll,res,res,h_flip,scaling))
+		local ok, err = mp.command(string.format("async no-osd vf add @vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling))
 		filterIsOn=true
 	else
-		local ok, err = mp.command(string.format("async no-osd vf set @vrrev:%sv360=hequirect:flat:in_stereo=%s:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,in_stereo,dfov,yaw,pitch,roll,res,res,h_flip,scaling))
+		local ok, err = mp.command(string.format("async no-osd vf set @vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling))
 		filterIsOn=true
 	end
 
@@ -306,6 +329,34 @@ local switchEye = function()
 	draw_cropper()
 end
 
+
+local cycleInputProjection = function()
+	inputProjectionInd = ((inputProjectionInd+1) % (#inputProjections +1))
+	inputProjection    = inputProjections[inputProjectionInd]
+	mp.osd_message(string.format("Input projection: %s ",inputProjection),0.5)
+	draw_cropper()
+end
+
+local cycleOutputProjection = function()
+	outputProjectionInd = ((outputProjectionInd+1) % (#outputProjections + 1))
+	outputProjection    = outputProjections[outputProjectionInd]
+	mp.osd_message(string.format("Output projection: %s",outputProjection),0.5)
+	draw_cropper()
+end
+
+
+local switchInputFovBounds = function()
+	if idfov == 180.0 then
+		idfov = 360.0
+	elseif idfov == 360.0 then
+		idfov = 90.0
+	else
+		idfov = 180.0
+	end
+	mp.osd_message(string.format("Input fov bounds: %s°",idfov),0.5)
+	draw_cropper()
+end
+
 local switchStereoMode = function()
 	if in_stereo == 'sbs' then
 		in_stereo = 'tb'
@@ -318,7 +369,7 @@ local switchStereoMode = function()
 end
 
 local showHelp  = function()
-	mp.osd_message("Keyboard and Mouse Controls:\n? = show help\ny,h = adjust quality\ni,j,k,l,mouseClick = Look around\nu,i = roll head\n-,=,mouseWheel = zoom\nr = switch SetereoMode\nt = switch Eye\ne = switch Scaler\ng = toggle mouse smothing\nn = start and stop motion recording",10)
+	mp.osd_message("Keyboard and Mouse Controls:\n? = show help\ny,h = adjust quality\ni,j,k,l,mouseClick = Look around\nu,i = roll head\n-,=,mouseWheel = zoom\nr = switch SetereoMode\nt = switch Eye\ne = switch Scaler\ng = toggle mouse smothing\nn = start and stop motion recording\n1,2 - cycle in and out projections",10)
 end
 
 local closeCurrentLog = function()
@@ -338,12 +389,11 @@ local closeCurrentLog = function()
 
 		file_object:write( '# Suggested ffmpeg conversion command:\n')
 
-		local closingCommandComment = string.format('ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=hequirect:flat:in_stereo=%s:out_stereo=2d:id_fov=180.0:d_fov=%.3f:yaw=%.3f:pitch=%.3f:roll=%.3f:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=3dViewHistory_%s.txt" -avoid_negative_ts make_zero -preset slower -crf 17 3dViewout_%03d.mp4',
-			startTime,filename,finalTimeStamp,in_flip,in_stereo,init_dfov,init_yaw,init_pitch,init_roll,h_flip,fileobjectNumber,fileobjectNumber
+		local closingCommandComment = string.format('ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%.3f:roll=%.3f:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=3dViewHistory_%s.txt" -avoid_negative_ts make_zero -preset slower -crf 17 3dViewout_%03d.mp4',
+			startTime,filename,finalTimeStamp,in_flip,inputProjection,outputProjection,in_stereo,idfov,init_dfov,init_yaw,init_pitch,init_roll,h_flip,fileobjectNumber,fileobjectNumber
 		)
 
-					
-
+				
 		file_object:write('# ' .. closingCommandComment .. '\n')
 		file_object:write('#\n')
 
@@ -396,43 +446,52 @@ local onExit = function()
 	end
 end
 
-mp.add_forced_key_binding("u", decrement_roll, 'repeatable')
-mp.add_forced_key_binding("o", increment_roll, 'repeatable')
 
-mp.add_forced_key_binding("v", ouputPos)
+local initFunction = function()
 
+	mp.add_forced_key_binding("1", cycleInputProjection  )
+	mp.add_forced_key_binding("2", cycleOutputProjection )
 
-mp.add_forced_key_binding("i", increment_pitch, 'repeatable')
-mp.add_forced_key_binding("k", decrement_pitch, 'repeatable')
-mp.add_key_binding("l", increment_yaw, 'repeatable')
-mp.add_key_binding("j", decrement_yaw, 'repeatable')
-mp.add_key_binding("c", "easy_crop", draw_cropper)
+	mp.add_forced_key_binding("u", decrement_roll, 'repeatable')
+	mp.add_forced_key_binding("o", increment_roll, 'repeatable')
 
-mp.add_forced_key_binding("y", increment_res, 'repeatable')
-mp.add_forced_key_binding("h", decrement_res, 'repeatable')
+	mp.add_forced_key_binding("v", ouputPos)
 
-mp.add_forced_key_binding("=", increment_zoom, 'repeatable')
-mp.add_forced_key_binding("-", decrement_zoom, 'repeatable')
+	mp.add_forced_key_binding("i", increment_pitch, 'repeatable')
+	mp.add_forced_key_binding("k", decrement_pitch, 'repeatable')
+	mp.add_key_binding("l", increment_yaw, 'repeatable')
+	mp.add_key_binding("j", decrement_yaw, 'repeatable')
+	mp.add_key_binding("c", "easy_crop", draw_cropper)
 
-mp.add_forced_key_binding("WHEEL_DOWN", increment_zoom)
-mp.add_forced_key_binding("WHEEL_UP", decrement_zoom)
+	mp.add_forced_key_binding("y", increment_res, 'repeatable')
+	mp.add_forced_key_binding("h", decrement_res, 'repeatable')
 
-mp.add_forced_key_binding("r", switchStereoMode)
-mp.add_forced_key_binding("t", switchEye)
-mp.add_forced_key_binding("e", switchScaler)
-mp.add_forced_key_binding("g", toggleSmoothMouse)
-mp.add_forced_key_binding("n", startNewLogSession)
+	mp.add_forced_key_binding("=", increment_zoom, 'repeatable')
+	mp.add_forced_key_binding("-", decrement_zoom, 'repeatable')
 
+	mp.add_forced_key_binding("WHEEL_DOWN", increment_zoom)
+	mp.add_forced_key_binding("WHEEL_UP", decrement_zoom)
 
+	mp.add_forced_key_binding("r", switchStereoMode)
+	mp.add_forced_key_binding("t", switchEye)
+	mp.add_forced_key_binding("e", switchScaler)
+	mp.add_forced_key_binding("g", toggleSmoothMouse)
+	mp.add_forced_key_binding("b", switchInputFovBounds)
+	mp.add_forced_key_binding("n", startNewLogSession)
 
-mp.set_property("osc", "no")
-mp.set_property("fullscreen", "yes")
-mp.add_forced_key_binding("mouse_btn0",mouse_btn0_cb)
-mp.add_forced_key_binding("mouse_move", mouse_pan)
+	mp.set_property("osc", "no")
+	mp.set_property("fullscreen", "yes")
+	mp.set_property("osd-font-size", "30")
+	mp.add_forced_key_binding("mouse_btn0",mouse_btn0_cb)
+	mp.add_forced_key_binding("mouse_move", mouse_pan)
 
-mp.add_forced_key_binding("?", showHelp)
-mp.add_forced_key_binding("/", showHelp)
+	mp.add_forced_key_binding("?", showHelp)
+	mp.add_forced_key_binding("/", showHelp)
 
-mp.register_event("shutdown", onExit)
+	mp.register_event("shutdown", onExit)
 
-draw_cropper()
+	draw_cropper()
+
+end
+
+mp.register_event("file-loaded", initFunction)
