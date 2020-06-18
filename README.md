@@ -66,7 +66,7 @@ And finally when  you're done:
 
 - `q` quit
 
-# 'Head' Motion Logging
+# 'Head' Motion Logging and saving your clips
 If you have pressed `n` during your session your 'head' movements in the video will be logged to a file named `3dViewHistory.txt` this is in the format of ffmpeg commands https://ffmpeg.org/
 
 The script will output a combined command to convert each logged section to an output mp4 file after you exit the player and create a batch file `convert_3dViewHistory.bat` to allow you to run the conversion automatically.
