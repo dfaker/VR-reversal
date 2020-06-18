@@ -28,16 +28,16 @@ The video will start at a low resolution, if you'd like more detail press `y` in
 - `y` Increase resolution
 - `h` decrease resolution
 
-Control the head motions with these keys:
+Control where you're looking with the mouse:
+
+- MouseLook: click anywhere in the video and your mouse position will control the camera, click again to stop mouse control
+- MouseScroll: Zoom in and out
+
+or alternately look around with these keys:
 
 - `i`,`j`,`k`,`l` look around 
 - `u`,`o` roll head
 - `=`,`-` zoom
-
-Or the mouse controls:
-
-- MouseLook: click anywhere in the video adn your mouse position will control the camera, click again to stop mouse control
-- MouseScroll: Zoom in and out
 
 Additional controls:
 
