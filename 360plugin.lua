@@ -386,8 +386,14 @@ local onExit = function()
 	end
 	if mergedCommand ~= '' then
 		mergedCommand = mergedCommand:sub(3)
+		print(mergedCommand)
+		batchfile = io.open(string.format('convert_3dViewHistory.bat',fileobjectNumber), 'w')
+		batchfile:write(mergedCommand)
+		file_object:close()
+		print('Batch processing file created convert_3dViewHistory.bat')
+	else
+		print('No head motions logged')
 	end
-	print(mergedCommand)
 end
 
 mp.add_forced_key_binding("u", decrement_roll, 'repeatable')
