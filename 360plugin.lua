@@ -36,20 +36,18 @@ local outputProjections = {
 local outputProjectionInd = 0
 local outputProjection    = "flat"
 
-
-
 local idfov=180.0
 local dfov=110.0
 local last_dfov  = 110.0
 local init_dfov = 0.0
 
 local doit = 0.0
-local res  = 1.0
+local res  = 3.0
 local dragging = false
 
 local smoothMouse = true
 
-local scaling   = 'near'
+local scaling   = 'nearest'
 
 local in_stereo = 'sbs'
 
@@ -93,7 +91,7 @@ function SecondsToClock(seconds)
   end
 end
 
-local ouputPos = function()
+local writeHeadPositionChange = function()
 
 	if filename == nil then
 		filename = mp.get_property("path")
@@ -166,7 +164,7 @@ local ouputPos = function()
 end
 
 
-local draw_cropper = function ()
+local updateFilters = function ()
 
 	if not filterIsOn then
 		local ok, err = mp.command(string.format("async no-osd vf add @vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling))
@@ -176,7 +174,7 @@ local draw_cropper = function ()
 		filterIsOn=true
 	end
 
-	ouputPos()
+	writeHeadPositionChange()
 end
 
 local mouse_btn0_cb = function ()
@@ -231,7 +229,7 @@ local mouse_pan = function ()
 		end
 
 		if updateCrop then
-			draw_cropper()
+			updateFilters()
 		end
 
 	end
@@ -243,57 +241,55 @@ local increment_res = function ()
 	res = math.min(res,20)
 
 	mp.osd_message(string.format("Out-Width: %spx",res*108.0),0.5)
-	draw_cropper()
+	updateFilters()
 end
 local decrement_res = function ()
 	res = res-1
 	res = math.max(1,res)
 	mp.osd_message(string.format("Out-Width: %spx",res*108.0),0.5)
 
-	draw_cropper()
+	updateFilters()
 end
 
 
 local increment_roll = function ()
 	roll = roll+1
-	draw_cropper()
+	updateFilters()
 end
 local decrement_roll = function ()
 	roll = roll-1
-	draw_cropper()
+	updateFilters()
 end
 
 local increment_pitch = function ()
 	pitch = pitch+1
-	draw_cropper()
+	updateFilters()
 end
 local decrement_pitch = function ()
 	pitch = pitch-1
-	draw_cropper()
+	updateFilters()
 end
 
 local increment_yaw = function ()
 	yaw = yaw+1
-	draw_cropper()
+	updateFilters()
 end
 local decrement_yaw = function ()
 	yaw = yaw-1
-	draw_cropper()
+	updateFilters()
 end
 
 local increment_zoom = function ()
 	dfov = dfov+1
-	dfov = math.min(180,dfov)
+	dfov = math.min(150,dfov)
 	mp.osd_message(string.format("D-Fov: %s°",dfov),0.5)
-	draw_cropper()
+	updateFilters()
 end
 local decrement_zoom = function ()
 	dfov = dfov-1
-
-	dfov = math.max(1,dfov)
-
+	dfov = math.max(30,dfov)
 	mp.osd_message(string.format("D-Fov: %s°",dfov),0.5)
-	draw_cropper()
+	updateFilters()
 end
 
 local toggleSmoothMouse  = function()
@@ -305,14 +301,22 @@ local toggleSmoothMouse  = function()
 	end
 end
 
+
+
 local switchScaler = function()
-	if scaling == 'near' then
+	if scaling == 'nearest' then
 		scaling = 'cubic'
-	else
-		scaling = 'near'
+	elseif scaling == 'cubic' then
+		scaling = 'lagrange9'
+	elseif scaling == 'lagrange9' then
+		scaling = 'lanczos'
+	elseif scaling == 'lanczos' then
+		scaling = 'linear'
+	elseif scaling == 'linear' then
+		scaling = 'nearest'
 	end
-	mp.osd_message("Scaling algorithm: " .. scaling,0.5)
-	draw_cropper()
+	mp.osd_message("Scaling algorithm: " .. scaling,5.5)
+	updateFilters()
 end
 
 local switchEye = function()
@@ -326,7 +330,7 @@ local switchEye = function()
 		mp.osd_message("Left eye",0.5)
 	end
 	print(ih_flip,h_flip)
-	draw_cropper()
+	updateFilters()
 end
 
 
@@ -334,14 +338,14 @@ local cycleInputProjection = function()
 	inputProjectionInd = ((inputProjectionInd+1) % (#inputProjections +1))
 	inputProjection    = inputProjections[inputProjectionInd]
 	mp.osd_message(string.format("Input projection: %s ",inputProjection),0.5)
-	draw_cropper()
+	updateFilters()
 end
 
 local cycleOutputProjection = function()
 	outputProjectionInd = ((outputProjectionInd+1) % (#outputProjections + 1))
 	outputProjection    = outputProjections[outputProjectionInd]
 	mp.osd_message(string.format("Output projection: %s",outputProjection),0.5)
-	draw_cropper()
+	updateFilters()
 end
 
 
@@ -354,7 +358,7 @@ local switchInputFovBounds = function()
 		idfov = 180.0
 	end
 	mp.osd_message(string.format("Input fov bounds: %s°",idfov),0.5)
-	draw_cropper()
+	updateFilters()
 end
 
 local switchStereoMode = function()
@@ -365,7 +369,7 @@ local switchStereoMode = function()
 		in_stereo = 'sbs'
 	end
 	mp.osd_message("Input format: " .. in_stereo,0.5)
-	draw_cropper()
+	updateFilters()
 end
 
 local showHelp  = function()
@@ -399,7 +403,6 @@ local closeCurrentLog = function()
 
 		print(closingCommandComment)
 		print('#')
-		
 
 		commandForFinalLog = closingCommandComment
 	end
@@ -413,11 +416,11 @@ end
 local startNewLogSession = function()
 	if file_object == nil then
 		openNewLogFile()
-		ouputPos()
+		writeHeadPositionChange()
 		mp.osd_message(string.format("Start Motion Record 3dViewHistory_%s.txt",fileobjectNumber),0.5)
 	else
 		mp.osd_message(string.format("Stop Motion Record 3dViewHistory_%s.txt",fileobjectNumber),0.5)
-		ouputPos()
+		writeHeadPositionChange()
 		local command = closeCurrentLog()
 		if command then
 			ffmpegComamndList[#ffmpegComamndList+1] = command
@@ -427,7 +430,7 @@ local startNewLogSession = function()
 end
 
 local onExit = function()
-	startNewLogSession()
+	closeCurrentLog()
 	mergedCommand = ''
 	for k,v in pairs(ffmpegComamndList) do
 		if v ~= '' then
@@ -437,15 +440,14 @@ local onExit = function()
 	if mergedCommand ~= '' then
 		mergedCommand = mergedCommand:sub(3)
 		print(mergedCommand)
-		batchfile = io.open(string.format('convert_3dViewHistory.bat',fileobjectNumber), 'w')
+		batchfile = io.open('convert_3dViewHistory.bat', 'w')
 		batchfile:write(mergedCommand)
-		file_object:close()
+		batchfile:close()
 		print('Batch processing file created convert_3dViewHistory.bat')
 	else
 		print('No head motions logged')
 	end
 end
-
 
 local initFunction = function()
 
@@ -455,13 +457,13 @@ local initFunction = function()
 	mp.add_forced_key_binding("u", decrement_roll, 'repeatable')
 	mp.add_forced_key_binding("o", increment_roll, 'repeatable')
 
-	mp.add_forced_key_binding("v", ouputPos)
+	mp.add_forced_key_binding("v", writeHeadPositionChange)
 
 	mp.add_forced_key_binding("i", increment_pitch, 'repeatable')
 	mp.add_forced_key_binding("k", decrement_pitch, 'repeatable')
 	mp.add_key_binding("l", increment_yaw, 'repeatable')
 	mp.add_key_binding("j", decrement_yaw, 'repeatable')
-	mp.add_key_binding("c", "easy_crop", draw_cropper)
+	mp.add_key_binding("c", "easy_crop", updateFilters)
 
 	mp.add_forced_key_binding("y", increment_res, 'repeatable')
 	mp.add_forced_key_binding("h", decrement_res, 'repeatable')
@@ -490,7 +492,7 @@ local initFunction = function()
 
 	mp.register_event("shutdown", onExit)
 
-	draw_cropper()
+	updateFilters()
 
 end
 
