@@ -39,12 +39,20 @@ Or the mouse controls:
 
 Additional controls:
 
-- `r` toggle stereo mode between top/bottom and side by-side
 - `t` switch the eye you're looking through between left and right
 - `e` switch the video scaler between nearest neighbour and bicubic
 - `g` toggle mouse smothing
 - `n` start or stop logging head motions to file for later rendering
 - `?` show keybaord and mouse control reminder on screen
+
+Advanced projection controls:
+
+90% of modern vr releases work perfectly with the defauls of 180 degree 'hequirect' projection so you shound't need these unless playing older or unusually formatted content:
+
+- `r` toggle stereo mode between top/bottom and side by-side
+- `b` cycle input fov bounds between 180,360 and 90
+- `1` cycle through input projections
+- `2` cycle through output projections
 
 Most of the standard mpv controls are maintained:
 
