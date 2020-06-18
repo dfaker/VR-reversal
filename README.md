@@ -60,18 +60,6 @@ And finally when  you're done:
 
 
 # 'Head' Motion Logging
-If you have pressed `n` during your session your 'head' movements in the video will be logged to a file named `3dViewHistory.txt` this is in the format of ffmpeg commands and looks like:
+If you have pressed `n` during your session your 'head' movements in the video will be logged to a file named `3dViewHistory.txt` this is in the format of ffmpeg commands https://ffmpeg.org/
 
-```
-188.792256-188.807622 [expr] v360 pitch -0.100000, [expr] v360 yaw 0.400000, [expr] v360 roll 0.000000, [expr] v360 d_fov 90.000000;
-188.807622-188.824578 [expr] v360 pitch -0.300000, [expr] v360 yaw 1.000000, [expr] v360 roll 0.000000, [expr] v360 d_fov 90.000000;
-...
-224.595089-224.611200 [expr] v360 pitch -3.500000, [expr] v360 yaw 7.100000, [expr] v360 roll 0.000000, [expr] v360 d_fov 95.000000;
-224.611200-224.627511 [expr] v360 pitch -3.200000, [expr] v360 yaw 7.100000, [expr] v360 roll 0.000000, [expr] v360 d_fov 95.000000;
-# ffmpeg -ss 188 -i videoFile.mp4 -to 224 -copyts -vf "v360=hequirect:flat:in_stereo=sbs:out_stereo=2d:id_fov=180.0:d_fov=90:yaw=0:pitch=0:roll=0:w=1920.0:h=1080.0:interp=cubic,sendcmd=filename=3dViewHistory.txt" -avoid_negative_ts make_zero -preset slower -crf 17 outputVideo.mp4
-```
-The comment at the end of the file is the suggested ffmpeg command to convert your video tracking data into an output video, it has the start and stop times set to the times when you intitially started changing the view of the vr 'head' via mouse motion or keyboard input.
-
-The script will also output a combined command to convert each logged section to an output mp4 file after you exit the player and create a batch file `convert_3dViewHistory.bat` to allow you to run the conversion automatically.
-
-If you have a recent ffmpeg build installed you can simply copy and paste that final command into a terminal (excluding the leading `# `) to render your session out to an .mp4 file at 1080p.
+The script will output a combined command to convert each logged section to an output mp4 file after you exit the player and create a batch file `convert_3dViewHistory.bat` to allow you to run the conversion automatically.
