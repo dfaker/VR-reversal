@@ -171,7 +171,9 @@ end
 local printRecordingStatus = function()
 	local startts = startTime
 	local endts   = lasttimePos
+	local currenttS = mp.get_property("time-pos")
 	if file_object ~= nil and endts ~= nil and startts ~= nil then
+		endts = math.max(endts,currenttS)
 		mp.osd_message(string.format("Recording:%s",SecondsToClock(endts-startts)),10)
 	end
 end
@@ -485,9 +487,10 @@ local initFunction = function()
 	mp.add_forced_key_binding("?", showHelp)
 	mp.add_forced_key_binding("/", showHelp)
 
+	mp.register_event("end-file", onExit)
 	mp.register_event("shutdown", onExit)
 
-	recordingStatusTimer = mp.add_periodic_timer(0.5,printRecordingStatus)
+	recordingStatusTimer = mp.add_periodic_timer(0.1,printRecordingStatus)
 
 	updateFilters()
 
