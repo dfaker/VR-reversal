@@ -117,24 +117,25 @@ local writeHeadPositionChange = function()
 
 		local outputTs = string.format("%.3f-%.3f ",lasttimePos,newTimePos)
 		local changedValues = {}
+		local maximumTimeoutReached = (lasttimePos-newTimePos) > 5.0
 
-		if initPass or pitch ~= last_pitch then
+		if initPass or pitch ~= last_pitch or maximumTimeoutReached then
 			changedValues[#changedValues+1]= string.format(", [expr] v360 pitch %.3f",pitch)
 		end 
 		last_pitch=pitch
 
-		if initPass or yaw ~= last_yaw then
+		if initPass or yaw ~= last_yaw or maximumTimeoutReached then
 			changedValues[#changedValues+1]= string.format(", [expr] v360 yaw %.3f",yaw)
 		end 
 		last_yaw=yaw
 
 
-		if initPass or roll ~= last_roll then
+		if initPass or roll ~= last_roll or maximumTimeoutReached then
 			changedValues[#changedValues+1]= string.format(", [expr] v360 roll %.3f",roll)
 		end 
 		last_roll=roll
 
-		if initPass or dfov ~= last_dfov then
+		if initPass or dfov ~= last_dfov or maximumTimeoutReached then
 			changedValues[#changedValues+1]= string.format(", [expr] v360 d_fov %.3f",dfov)
 		end 
 		last_dfov=dfov
