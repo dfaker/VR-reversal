@@ -117,26 +117,27 @@ local writeHeadPositionChange = function()
 
 		local outputTs = string.format("%.3f-%.3f ",lasttimePos,newTimePos)
 		local changedValues = {}
-		local maximumTimeoutReached = (lasttimePos-newTimePos) > 5.0
+		local movementDuration = (newTimePos-lasttimePos)
+		local maximumTimeoutReached = movementDuration > 5.0
 
 		if initPass or pitch ~= last_pitch or maximumTimeoutReached then
-			changedValues[#changedValues+1]= string.format(", [expr] v360 pitch %.3f",pitch)
+			changedValues[#changedValues+1]= string.format(", [expr] v360 pitch 'lerp(%.3f,%.3f,(T-%.3f)/%.3f)'",last_pitch,pitch,lasttimePos,movementDuration)
 		end 
 		last_pitch=pitch
 
 		if initPass or yaw ~= last_yaw or maximumTimeoutReached then
-			changedValues[#changedValues+1]= string.format(", [expr] v360 yaw %.3f",yaw)
+			changedValues[#changedValues+1]= string.format(", [expr] v360 yaw 'lerp(%.3f,%.3f,(T-%.3f)/%.3f)'",last_yaw,yaw,lasttimePos,movementDuration)
 		end 
 		last_yaw=yaw
 
 
 		if initPass or roll ~= last_roll or maximumTimeoutReached then
-			changedValues[#changedValues+1]= string.format(", [expr] v360 roll %.3f",roll)
+			changedValues[#changedValues+1]= string.format(", [expr] v360 roll 'lerp(%.3f,%.3f,(T-%.3f)/%.3f)'",last_roll,roll,lasttimePos,movementDuration)
 		end 
 		last_roll=roll
 
 		if initPass or dfov ~= last_dfov or maximumTimeoutReached then
-			changedValues[#changedValues+1]= string.format(", [expr] v360 d_fov %.3f",dfov)
+			changedValues[#changedValues+1]= string.format(", [expr] v360 d_fov 'lerp(%.3f,%.3f,(T-%.3f)/%.3f)'",last_dfov,dfov,lasttimePos,movementDuration)
 		end 
 		last_dfov=dfov
 
