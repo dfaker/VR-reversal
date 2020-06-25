@@ -14,7 +14,7 @@ If you want to save the 2D versions videos rather than just watch them you'll ne
 
 Alternatively rather than using the command line, windows users may choose to:
 
-- Place mpv.exe, vr-reversal.bat and 360plugin.lua (vr-reversal.bat and 360plugin.lua are avalaible in a single zip file from the most recent release https://github.com/dfaker/VR-reversal/releases) in the same folder.
+- Place mpv.exe, [vr-reversal.bat](https://raw.githubusercontent.com/dfaker/VR-reversal/master/vr-reversal.bat) and [360plugin.lua](https://raw.githubusercontent.com/dfaker/VR-reversal/master/360plugin.lua) (the latter two are avlaible  as a .zip in [releases](https://github.com/dfaker/VR-reversal/releases) ) in the same folder.
 - Run vr-reversal.bat
 - Drag and drop videos onto the mpv window that opens up.
 
