@@ -7,7 +7,7 @@ Uses mpv and a plugin to play a 3D side-by-side video as a 2D video, allows you 
 # Installation and Usage:
 
 - Download the lastest mpv https://mpv.io/
-- Download the 360plugin.lua from this repo.
+- Download the [360plugin.lua](https://raw.githubusercontent.com/dfaker/VR-reversal/master/360plugin.lua) plugin from this repo.
 - Play a video using the plugin with the command: `mpv --script=360plugin.lua videoFile.mp4`
 
 If you want to save the 2D versions videos rather than just watch them you'll need a recent version of ffmpeg from https://ffmpeg.org/ but it's not needed just for viewing.
