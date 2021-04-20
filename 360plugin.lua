@@ -1,4 +1,12 @@
-
+-- If the file "../script-opts/360plugin.conf" (or name of this script) is present,
+-- and autoload=yes is written to it,
+-- or the command line argument "--script-opts=360plugin-autoload=yes" is passed,
+-- the features of this script will be running without having to use the toggle key.
+o = {
+	autoload = false
+}
+require 'mp.options'
+read_options(o)
 
 local yaw   = 0.0
 local last_yaw = 0.0
@@ -79,15 +87,15 @@ end
 
 
 function SecondsToClock(seconds)
-  local seconds = tonumber(seconds)
-  if seconds <= 0 then
-    return "00:00:00";
-  else
-    hours = string.format("%02.f", math.floor(seconds/3600));
-    mins = string.format("%02.f", math.floor(seconds/60 - (hours*60)));
-    secs = string.format("%02.2f", seconds - hours*3600 - mins *60);
-    return hours..":"..mins..":"..secs
-  end
+	local seconds = tonumber(seconds)
+	if seconds <= 0 then
+		return "00:00:00";
+	else
+	hours = string.format("%02.f", math.floor(seconds/3600));
+	mins = string.format("%02.f", math.floor(seconds/60 - (hours*60)));
+	secs = string.format("%02.2f", seconds - hours*3600 - mins *60);
+		return hours..":"..mins..":"..secs
+	end
 end
 
 local writeHeadPositionChange = function()
@@ -181,7 +189,6 @@ end
 
 
 local updateFilters = function ()
-
 	if not filterIsOn then
 		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
 		filterIsOn=true
@@ -207,8 +214,6 @@ end
 
 
 local mouse_pan = function ()
-	
-	
 	if dragging then
 
 		local MousePosx, MousePosy = mp.get_mouse_pos()
@@ -263,31 +268,56 @@ end
 
 local increment_res = function(inc)
 	res = res+inc
-	res = math.max(math.min(res,20),1)
-	mp.osd_message(string.format("Out-Width: %spx",res*108.0),0.5)
+	res = math.max(math.min(res, 20), 1)
+	mp.osd_message(string.format("Out-Width: %spx", res*108.0), 0.5)
 	updateFilters()
 end
 
 local increment_roll = function (inc)
-	roll = roll+inc
+	roll = roll + inc
+	if roll > 180.0 then
+		roll = 180.0
+	elseif roll < -180.0 then
+		roll = -180.0
+	end
+	mp.osd_message(string.format("Roll: %s°", roll), 0.5)
 	updateFilters()
-	mp.osd_message(string.format("Roll: %s°",roll),0.5)
 end
 
 local increment_pitch = function (inc)
-	pitch = pitch+inc
+	pitch = pitch + inc
+	if pitch > 180.0 then
+		pitch = 180.0
+	elseif pitch < -180.0 then
+		pitch = -180.0
+	end
+	mp.osd_message(string.format("Pitch: %s°", pitch), 0.5)
 	updateFilters()
 end
 
 local increment_yaw = function (inc)
 	yaw = yaw+inc
+	if yaw > 180.0 then
+		yaw = 180.0
+	elseif yaw < -180.0 then
+		yaw = -180.0
+	end
+	mp.osd_message(string.format("Yaw: %s°", yaw), 0.5)
 	updateFilters()
 end
 
 local increment_zoom = function (inc)
 	dfov = dfov+inc
-	dfov = math.max(math.min(150,dfov),30)
-	mp.osd_message(string.format("D-Fov: %s°",dfov),0.5)
+	dfov = math.max(math.min(150, dfov), 30)
+	mp.osd_message(string.format("D-Fov: %s°", dfov), 0.5)
+	updateFilters()
+end
+
+local reset_view = function()
+	yaw = 0.0
+	roll = 0.0
+	pitch = 0.0
+	mp.osd_message(string.format("Reset view."), 0.5)
 	updateFilters()
 end
 
@@ -368,8 +398,10 @@ local switchStereoMode = function()
 	updateFilters()
 end
 
-local showHelp  = function()
-	mp.osd_message("Keyboard and Mouse Controls:\n? = show help\ny,h = adjust quality\ni,j,k,l,mouseClick = Look around\nu,i = roll head\n-,=,mouseWheel = zoom\nr = switch SetereoMode\nt = switch Eye\ne = switch Scaler\ng = toggle mouse smothing\nn = start and stop motion recording\n1,2 - cycle in and out projections",10)
+local help_string = ""
+
+local showHelp = function()
+	mp.osd_message(help_string, 10)
 end
 
 local closeCurrentLog = function()
@@ -440,53 +472,51 @@ local onExit = function()
 		batchfile:write(mergedCommand)
 		batchfile:close()
 		print('Batch processing file created convert_3dViewHistory.bat')
-	else
-		print('No head motions logged')
+	end
+end
+
+local last_hwdec = nil
+
+local save_hwdec = function()
+	-- Workaround: hardware acceleration doesn't work currently, disable it.
+	-- Error: [ffmpeg] Impossible to convert between the formats supported by 
+	-- the filter 'mpv_src_default_in' and the filter 'auto_scaler_0'
+	local hwdec_opt = mp.get_property('hwdec')
+	last_hwdec = hwdec_opt
+	if string.find(hwdec_opt, "no") == nil then
+		mp.osd_message(string.format("Temporarily turned off hardware decoding."), 1.5)
+		mp.set_property("hwdec", "no")
+	end
+end
+
+local restore_hwdec = function()
+	-- Can be displayed in osd console with "show-text ${hwdec-current}"
+	mp.osd_message(string.format("Restoring hardware acceleration: %s", last_hwdec), 1.5)
+	mp.set_property("hwdec", last_hwdec)
+end
+
+local restore_keybinds = function()
+	-- Actually, there is no need to re-apply the previous key-bindings if they 
+	-- have been forcibly rebound by our script. There are still there.
+	for k,v in pairs(bindings) do
+		if k == binding_by_name("toggle_vr360") then
+			print("Skipping key: " .. k)
+			goto continue
+		end
+		mp.remove_key_binding(v["name"])
+		::continue::
 	end
 end
 
 local recordingStatusTimer = nil
 
 local initFunction = function()
-
-	mp.add_forced_key_binding("1", cycleInputProjection  )
-	mp.add_forced_key_binding("2", cycleOutputProjection )
-
-	mp.add_forced_key_binding("u", function() increment_roll(-1) end, 'repeatable')
-	mp.add_forced_key_binding("o", function() increment_roll(1)  end, 'repeatable')
-
-	mp.add_forced_key_binding("v", writeHeadPositionChange)
-
-	mp.add_forced_key_binding("i", function() increment_pitch(1)  end, 'repeatable')
-	mp.add_forced_key_binding("k", function() increment_pitch(-1) end, 'repeatable')
-	mp.add_key_binding("l", function() increment_yaw(1)  end, 'repeatable')
-	mp.add_key_binding("j", function() increment_yaw(-1) end, 'repeatable')
-	mp.add_key_binding("c", "easy_crop", updateFilters)
-
-	mp.add_forced_key_binding("y", function() increment_res(1)  end, 'repeatable')
-	mp.add_forced_key_binding("h", function() increment_res(-1) end, 'repeatable')
-
-	mp.add_forced_key_binding("=", function() increment_zoom(-1)  end, 'repeatable')
-	mp.add_forced_key_binding("-", function() increment_zoom(1) end, 'repeatable')
-
-	mp.add_forced_key_binding("WHEEL_DOWN", function() increment_zoom(1)  end)
-	mp.add_forced_key_binding("WHEEL_UP",   function() increment_zoom(-1) end)
-
-	mp.add_forced_key_binding("r", switchStereoMode)
-	mp.add_forced_key_binding("t", switchEye)
-	mp.add_forced_key_binding("e", switchScaler)
-	mp.add_forced_key_binding("g", toggleSmoothMouse)
-	mp.add_forced_key_binding("b", switchInputFovBounds)
-	mp.add_forced_key_binding("n", startNewLogSession)
-
+	for key, pref in pairs(bindings) do
+		mp.add_forced_key_binding(key, pref["name"], pref["fn"], pref["flags"])
+	end
 	mp.set_property("osc", "no")
 	mp.set_property("fullscreen", "yes")
 	mp.set_property("osd-font-size", "30")
-	mp.add_forced_key_binding("mouse_btn0",mouse_btn0_cb)
-	mp.add_forced_key_binding("mouse_move", mouse_pan)
-
-	mp.add_forced_key_binding("?", showHelp)
-	mp.add_forced_key_binding("/", showHelp)
 
 	mp.register_event("end-file", onExit)
 	mp.register_event("shutdown", onExit)
@@ -494,7 +524,96 @@ local initFunction = function()
 	recordingStatusTimer = mp.add_periodic_timer(0.1,printRecordingStatus)
 
 	updateFilters()
-
 end
 
-mp.register_event("file-loaded", initFunction)
+teardownFunction = function()
+	filterIsOn = false
+	restore_hwdec()
+	restore_keybinds()
+	mp.unregister_event(onExit)
+	mp.unregister_event(onExit)
+	if recordingStatusTimer ~= nil and recordingStatusTimer:is_enabled() then
+		recordingStatusTimer:kill()
+		recordingStatusTimer = nil
+	end
+end
+
+local toggle_script = function()
+	if filterIsOn then
+		teardownFunction()
+	else
+		save_hwdec()
+		initFunction()
+	end
+end
+
+-- TODO add gamepad keys from --input-keylist
+bindings = {
+	["1"]			=	{name="cycle_input",	fn=cycleInputProjection },
+	["2"]			=	{name="cycle_output",	fn=cycleOutputProjection },
+	["u"]			=	{name="roll_left",		fn=function() increment_roll(-1) end,	flags={repeatable=true}},
+	["o"]			=	{name="roll_right",		fn=function() increment_roll(1) end,	flags={repeatable=true}},
+	["w"]			=	{name="write_log",		fn=writeHeadPositionChange },
+	["i"]			=	{name="pitch_up",		fn=function() increment_pitch(1) end,	flags={repeatable=true}},
+	["k"]			=	{name="pitch_down",		fn=function() increment_pitch(-1) end,	flags={repeatable=true}},
+	["l"]			=	{name="yaw_up",			fn=function() increment_yaw(1) end,		flags={repeatable=true}},
+	["j"]			=	{name="yaw_down",		fn=function() increment_yaw(-1) end,	flags={repeatable=true}},
+	["c"]			=	{name="easy_crop",		fn=updateFilters,						flags={repeatable=true}},
+	["y"]			=	{name="res_up",			fn=function() increment_res(1) end,		flags={repeatable=true}},
+	["h"]			=	{name="res_down",		fn=function() increment_res(-1) end,	flags={repeatable=true}},
+	["="]			=	{name="zoom_in",		fn=function() increment_zoom(-1) end,	flags={repeatable=true}},
+	["-"]			=	{name="zoom_out",		fn=function() increment_zoom(1) end,	flags={repeatable=true}},
+	["WHEEL_DOWN"]	=	{name="wzoom_out",		fn=function() increment_zoom(1) end },
+	["WHEEL_UP"] 	=	{name="wzoom_in",		fn=function() increment_zoom(-1) end },
+	["0"] 			=	{name="reset_view",		fn=reset_view 			},
+	["r"]			=	{name="switch_stereo",	fn=switchStereoMode		},
+	["t"]			=	{name="switch_eye",		fn=switchEye			},
+	["e"]			=	{name="switch_scaler",	fn=switchScaler			},
+	["g"]			=	{name="toggle_smooth",	fn=toggleSmoothMouse	},
+	["b"]			=	{name="switch_bounds",	fn=switchInputFovBounds	},
+	["n"]			=	{name="new_log_session",fn=startNewLogSession	},
+	["mouse_btn0"]	=	{name="mouse0",			fn=mouse_btn0_cb		},
+	["mouse_move"]	=	{name="mouse_pan",		fn=mouse_pan			},
+	["?"]			=	{name="show_help",		fn=showHelp				},
+	["v"]			=	{name="toggle_vr360",	fn=toggle_script		}
+}
+
+binding_by_name = function(_lookup)
+	for k, v in pairs(bindings) do
+		if v["name"] == _lookup then
+			return k
+		end
+	end
+end
+
+local build_help_string = function()
+	help_string = "Default keyboard & mouse controls:\n"
+	.. binding_by_name("show_help") .. " = show help\n"
+	.. binding_by_name("res_up") .. "," .. binding_by_name("res_down") .. " = adjust quality\n"
+	.. "Mouse Click = look around\n"
+	.. binding_by_name("roll_left") .. "," .. binding_by_name("roll_right") .. " = roll head\n"
+	.. "Mouse Wheel = zoom\n"
+	.. binding_by_name("switch_stereo") .. 		" = switch stereo Mode\n"
+	.. binding_by_name("switch_eye") .. 		" = switch eye side\n"
+	.. binding_by_name("switch_scaler") .. 		" = switch scaler\n"
+	.. binding_by_name("toggle_smooth") .. 		" = toggle mouse smoothing\n"
+	.. binding_by_name("new_log_session") .. 	" = start/stop motion recording\n"
+	.. binding_by_name("cycle_input") .. "," .. binding_by_name("cycle_output") .. " = cycle in and out projections\n"
+end
+
+local reg_toggle_key = function ()
+	-- mp.add_key_binding("v", "toggle_vr360", toggle_script)
+	for k,v in pairs(bindings) do
+		if v["name"] == "toggle_vr360" then
+			mp.add_key_binding(k, "toggle_vr360", v["fn"])
+			return
+		end
+	end
+end
+
+build_help_string()
+mp.register_event("file-loaded", reg_toggle_key)
+
+if o.autoload == true then
+	toggle_script()
+end
