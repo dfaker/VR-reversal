@@ -1,12 +1,40 @@
 -- If the file "../script-opts/360plugin.conf" (or name of this script) is present,
--- and autoload=yes is written to it,
--- or the command line argument "--script-opts=360plugin-autoload=yes" is passed,
+-- and enabled=yes is written to it,
+-- or the command line argument "--script-opts=360plugin-enabled=yes" is passed,
 -- the features of this script will be running without having to use the toggle key.
-o = {
-	autoload = false
+-- The following default key bindings can also be reconfigured in the same way
+-- (including via CLI) without editing this script at all.
+local opts = {
+	enabled = false,
+	cycle_input="1",
+	cycle_output="2",
+	roll_left="u",
+	roll_right="o",
+	write_log="w",
+	pitch_up="i",
+	pitch_down="k",
+	yaw_up="l",
+	yaw_down="j",
+	easy_crop="c",
+	res_up="y",
+	res_down="h",
+	zoom_in="=",
+	zoom_out="-",
+	wzoom_out="WHEEL_DOWN",
+	wzoom_in="WHEEL_UP",
+	reset_view="0",
+	switch_stereo="r",
+	switch_eye="t",
+	switch_scaler="e",
+	toggle_smooth="g",
+	switch_bounds="b",
+	new_log_session="n",
+	grab_mouse="mouse_btn0",
+	mouse_pan="mouse_move",
+	show_help="?",
+	toggle_vr360="v",
 }
-require 'mp.options'
-read_options(o)
+(require 'mp.options').read_options(opts)
 
 local yaw   = 0.0
 local last_yaw = 0.0
@@ -528,6 +556,7 @@ end
 
 teardownFunction = function()
 	filterIsOn = false
+	-- FIXME turn off filter here
 	restore_hwdec()
 	restore_keybinds()
 	mp.unregister_event(onExit)
@@ -538,44 +567,45 @@ teardownFunction = function()
 	end
 end
 
-local toggle_script = function()
-	if filterIsOn then
-		teardownFunction()
-	else
+local toggleVR = function()
+	opts.enabled = not opts.enabled
+	if opts.enabled then
 		save_hwdec()
 		initFunction()
+		return
 	end
+	teardownFunction()
 end
 
 -- TODO add gamepad keys from --input-keylist
 bindings = {
-	["1"]			=	{name="cycle_input",	fn=cycleInputProjection },
-	["2"]			=	{name="cycle_output",	fn=cycleOutputProjection },
-	["u"]			=	{name="roll_left",		fn=function() increment_roll(-1) end,	flags={repeatable=true}},
-	["o"]			=	{name="roll_right",		fn=function() increment_roll(1) end,	flags={repeatable=true}},
-	["w"]			=	{name="write_log",		fn=writeHeadPositionChange },
-	["i"]			=	{name="pitch_up",		fn=function() increment_pitch(1) end,	flags={repeatable=true}},
-	["k"]			=	{name="pitch_down",		fn=function() increment_pitch(-1) end,	flags={repeatable=true}},
-	["l"]			=	{name="yaw_up",			fn=function() increment_yaw(1) end,		flags={repeatable=true}},
-	["j"]			=	{name="yaw_down",		fn=function() increment_yaw(-1) end,	flags={repeatable=true}},
-	["c"]			=	{name="easy_crop",		fn=updateFilters,						flags={repeatable=true}},
-	["y"]			=	{name="res_up",			fn=function() increment_res(1) end,		flags={repeatable=true}},
-	["h"]			=	{name="res_down",		fn=function() increment_res(-1) end,	flags={repeatable=true}},
-	["="]			=	{name="zoom_in",		fn=function() increment_zoom(-1) end,	flags={repeatable=true}},
-	["-"]			=	{name="zoom_out",		fn=function() increment_zoom(1) end,	flags={repeatable=true}},
-	["WHEEL_DOWN"]	=	{name="wzoom_out",		fn=function() increment_zoom(1) end },
-	["WHEEL_UP"] 	=	{name="wzoom_in",		fn=function() increment_zoom(-1) end },
-	["0"] 			=	{name="reset_view",		fn=reset_view 			},
-	["r"]			=	{name="switch_stereo",	fn=switchStereoMode		},
-	["t"]			=	{name="switch_eye",		fn=switchEye			},
-	["e"]			=	{name="switch_scaler",	fn=switchScaler			},
-	["g"]			=	{name="toggle_smooth",	fn=toggleSmoothMouse	},
-	["b"]			=	{name="switch_bounds",	fn=switchInputFovBounds	},
-	["n"]			=	{name="new_log_session",fn=startNewLogSession	},
-	["mouse_btn0"]	=	{name="mouse0",			fn=mouse_btn0_cb		},
-	["mouse_move"]	=	{name="mouse_pan",		fn=mouse_pan			},
-	["?"]			=	{name="show_help",		fn=showHelp				},
-	["v"]			=	{name="toggle_vr360",	fn=toggle_script		}
+	[opts.cycle_input]		=	{name="cycle_input",	fn=cycleInputProjection },
+	[opts.cycle_output]		=	{name="cycle_output",	fn=cycleOutputProjection },
+	[opts.roll_left]		=	{name="roll_left",		fn=function() increment_roll(-1) end,	flags={repeatable=true}},
+	[opts.roll_right]		=	{name="roll_right",		fn=function() increment_roll(1) end,	flags={repeatable=true}},
+	[opts.write_log]		=	{name="write_log",		fn=writeHeadPositionChange },
+	[opts.pitch_up]			=	{name="pitch_up",		fn=function() increment_pitch(1) end,	flags={repeatable=true}},
+	[opts.pitch_down]		=	{name="pitch_down",		fn=function() increment_pitch(-1) end,	flags={repeatable=true}},
+	[opts.yaw_up]			=	{name="yaw_up",			fn=function() increment_yaw(1) end,		flags={repeatable=true}},
+	[opts.yaw_down]			=	{name="yaw_down",		fn=function() increment_yaw(-1) end,	flags={repeatable=true}},
+	[opts.easy_crop]		=	{name="easy_crop",		fn=updateFilters,						flags={repeatable=true}},
+	[opts.res_up]			=	{name="res_up",			fn=function() increment_res(1) end,		flags={repeatable=true}},
+	[opts.res_down]			=	{name="res_down",		fn=function() increment_res(-1) end,	flags={repeatable=true}},
+	[opts.zoom_in]			=	{name="zoom_in",		fn=function() increment_zoom(-1) end,	flags={repeatable=true}},
+	[opts.zoom_out]			=	{name="zoom_out",		fn=function() increment_zoom(1) end,	flags={repeatable=true}},
+	[opts.wzoom_out]		=	{name="wzoom_out",		fn=function() increment_zoom(1) end },
+	[opts.wzoom_in] 		=	{name="wzoom_in",		fn=function() increment_zoom(-1) end },
+	[opts.reset_view] 		=	{name="reset_view",		fn=reset_view 			},
+	[opts.switch_stereo]	=	{name="switch_stereo",	fn=switchStereoMode		},
+	[opts.switch_eye]		=	{name="switch_eye",		fn=switchEye			},
+	[opts.switch_scaler]	=	{name="switch_scaler",	fn=switchScaler			},
+	[opts.toggle_smooth]	=	{name="toggle_smooth",	fn=toggleSmoothMouse	},
+	[opts.switch_bounds]	=	{name="switch_bounds",	fn=switchInputFovBounds	},
+	[opts.new_log_session]	=	{name="new_log_session",fn=startNewLogSession	},
+	[opts.grab_mouse]		=	{name="grab_mouse",		fn=mouse_btn0_cb		},
+	[opts.mouse_pan]		=	{name="mouse_pan",		fn=mouse_pan			},
+	[opts.show_help]		=	{name="show_help",		fn=showHelp				},
+	[opts.toggle_vr360]		=	{name="toggle_vr360",	fn=toggleVR				}
 }
 
 binding_by_name = function(_lookup)
@@ -599,13 +629,14 @@ local build_help_string = function()
 	.. binding_by_name("toggle_smooth") .. 		" = toggle mouse smoothing\n"
 	.. binding_by_name("new_log_session") .. 	" = start/stop motion recording\n"
 	.. binding_by_name("cycle_input") .. "," .. binding_by_name("cycle_output") .. " = cycle in and out projections\n"
+	.. binding_by_name("reset_view") .. " = center view\n"
 end
 
 local reg_toggle_key = function ()
-	-- mp.add_key_binding("v", "toggle_vr360", toggle_script)
+	-- mp.add_key_binding("v", "toggle_vr360", toggleVR)
 	for k,v in pairs(bindings) do
 		if v["name"] == "toggle_vr360" then
-			mp.add_key_binding(k, "toggle_vr360", v["fn"])
+			mp.add_forced_key_binding(k, "toggle_vr360", v["fn"])
 			return
 		end
 	end
@@ -614,6 +645,7 @@ end
 build_help_string()
 mp.register_event("file-loaded", reg_toggle_key)
 
-if o.autoload == true then
-	toggle_script()
+if opts.enabled == true then
+	save_hwdec()
+	initFunction()
 end
