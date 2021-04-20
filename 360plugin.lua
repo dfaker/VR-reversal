@@ -523,7 +523,7 @@ end
 
 local restore_keybinds = function()
 	-- Actually, there is no need to re-apply the previous key-bindings if they 
-	-- have been forcibly rebound by our script. There are still there.
+	-- have been forcibly rebound by our script. They are still there.
 	for k,v in pairs(bindings) do
 		if k == binding_by_name("toggle_vr360") then
 			print("Skipping key: " .. k)
@@ -552,7 +552,7 @@ local initFunction = function()
 	updateFilters()
 end
 
-teardownFunction = function()
+local teardownFunction = function()
 	filterIsOn = false
 	updateAwaiting = true
 	mp.command_native({"no-osd", "vf", "remove", "@vrrev"}, updateComplete)
