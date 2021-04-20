@@ -219,14 +219,11 @@ end
 local updateFilters = function ()
 	if not filterIsOn then
 		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
-		filterIsOn=true
-	else
-		if not updateAwaiting then
-			updateAwaiting=true
-			mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
-		end
-		filterIsOn=true
+	elseif not updateAwaiting then
+		updateAwaiting=true
+		mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
 	end
+	filterIsOn=true
 	printRecordingStatus()
 	writeHeadPositionChange()
 end
@@ -342,6 +339,7 @@ local increment_zoom = function (inc)
 end
 
 local reset_view = function()
+	-- FIXME Reset the log recording coordinates as well
 	yaw = 0.0
 	roll = 0.0
 	pitch = 0.0
@@ -556,7 +554,8 @@ end
 
 teardownFunction = function()
 	filterIsOn = false
-	-- FIXME turn off filter here
+	updateAwaiting = true
+	mp.command_native({"no-osd", "vf", "remove", "@vrrev"}, updateComplete)
 	restore_hwdec()
 	restore_keybinds()
 	mp.unregister_event(onExit)
@@ -577,7 +576,8 @@ local toggleVR = function()
 	teardownFunction()
 end
 
--- TODO add gamepad keys from --input-keylist
+-- TODO add gamepad keys (see --input-keylist for ref)
+-- TODO add multiple keys for same binding name if possible
 bindings = {
 	[opts.cycle_input]		=	{name="cycle_input",	fn=cycleInputProjection },
 	[opts.cycle_output]		=	{name="cycle_output",	fn=cycleOutputProjection },
