@@ -219,11 +219,11 @@ end
 local updateFilters = function ()
 	if not filterIsOn then
 		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
+		filterIsOn=true
 	elseif not updateAwaiting then
 		updateAwaiting=true
 		mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
 	end
-	filterIsOn=true
 	printRecordingStatus()
 	writeHeadPositionChange()
 end
@@ -339,7 +339,6 @@ local increment_zoom = function (inc)
 end
 
 local reset_view = function()
-	-- FIXME Reset the log recording coordinates as well
 	yaw = 0.0
 	roll = 0.0
 	pitch = 0.0
@@ -424,9 +423,37 @@ local switchStereoMode = function()
 	updateFilters()
 end
 
-local help_string = ""
+local binding_by_name = function(_lookup)
+	for k, v in pairs(bindings) do
+		if v["name"] == _lookup then
+			return k
+		end
+	end
+end
+
+local build_help_string = function()
+	return table.concat({ "Default keyboard & mouse controls:\n",
+	binding_by_name("show_help"), " = show help\n",
+	binding_by_name("res_up"), ",", binding_by_name("res_down"), " = adjust quality\n",
+	"Mouse Click = look around\n",
+	binding_by_name("roll_left"), ",", binding_by_name("roll_right"), " = roll head\n",
+	"Mouse Wheel = zoom\n",
+	binding_by_name("switch_stereo"),	" = switch stereo Mode\n",
+	binding_by_name("switch_eye"), 		" = switch eye side\n",
+	binding_by_name("switch_scaler"), 	" = switch scaler\n",
+	binding_by_name("toggle_smooth"), 	" = toggle mouse smoothing\n",
+	binding_by_name("new_log_session"),	" = start/stop motion recording\n",
+	binding_by_name("cycle_input"), ",", binding_by_name("cycle_output") , " = cycle in and out projections\n",
+	binding_by_name("reset_view"), " = center view\n"
+	})
+end
+
+local help_string = nil
 
 local showHelp = function()
+	if help_string == nil then
+		help_string = build_help_string()
+	end
 	mp.osd_message(help_string, 10)
 end
 
@@ -504,7 +531,7 @@ end
 local last_hwdec = nil
 
 local save_hwdec = function()
-	-- Workaround: hardware acceleration doesn't work currently, disable it.
+	-- Workaround: hardware acceleration rarely works well, so we disable it.
 	-- Error: [ffmpeg] Impossible to convert between the formats supported by 
 	-- the filter 'mpv_src_default_in' and the filter 'auto_scaler_0'
 	local hwdec_opt = mp.get_property('hwdec')
@@ -522,8 +549,8 @@ local restore_hwdec = function()
 end
 
 local restore_keybinds = function()
-	-- Actually, there is no need to re-apply the previous key-bindings if they 
-	-- have been forcibly rebound by our script. They are still there.
+	-- There is no need to re-apply the previous key-bindings if they have been
+	-- forcibly rebound by our script. They are still there after removal.
 	for k,v in pairs(bindings) do
 		if k == binding_by_name("toggle_vr360") then
 			print("Skipping key: " .. k)
@@ -576,8 +603,6 @@ local toggleVR = function()
 	teardownFunction()
 end
 
--- TODO add gamepad keys (see --input-keylist for ref)
--- TODO add multiple keys for same binding name if possible
 bindings = {
 	[opts.cycle_input]		=	{name="cycle_input",	fn=cycleInputProjection },
 	[opts.cycle_output]		=	{name="cycle_output",	fn=cycleOutputProjection },
@@ -608,32 +633,8 @@ bindings = {
 	[opts.toggle_vr360]		=	{name="toggle_vr360",	fn=toggleVR				}
 }
 
-binding_by_name = function(_lookup)
-	for k, v in pairs(bindings) do
-		if v["name"] == _lookup then
-			return k
-		end
-	end
-end
-
-local build_help_string = function()
-	help_string = "Default keyboard & mouse controls:\n"
-	.. binding_by_name("show_help") .. " = show help\n"
-	.. binding_by_name("res_up") .. "," .. binding_by_name("res_down") .. " = adjust quality\n"
-	.. "Mouse Click = look around\n"
-	.. binding_by_name("roll_left") .. "," .. binding_by_name("roll_right") .. " = roll head\n"
-	.. "Mouse Wheel = zoom\n"
-	.. binding_by_name("switch_stereo") .. 		" = switch stereo Mode\n"
-	.. binding_by_name("switch_eye") .. 		" = switch eye side\n"
-	.. binding_by_name("switch_scaler") .. 		" = switch scaler\n"
-	.. binding_by_name("toggle_smooth") .. 		" = toggle mouse smoothing\n"
-	.. binding_by_name("new_log_session") .. 	" = start/stop motion recording\n"
-	.. binding_by_name("cycle_input") .. "," .. binding_by_name("cycle_output") .. " = cycle in and out projections\n"
-	.. binding_by_name("reset_view") .. " = center view\n"
-end
-
 local reg_toggle_key = function ()
-	-- mp.add_key_binding("v", "toggle_vr360", toggleVR)
+	-- mp.add_forced_key_binding("v", "toggle_vr360", toggleVR)
 	for k,v in pairs(bindings) do
 		if v["name"] == "toggle_vr360" then
 			mp.add_forced_key_binding(k, "toggle_vr360", v["fn"])
@@ -642,7 +643,6 @@ local reg_toggle_key = function ()
 	end
 end
 
-build_help_string()
 mp.register_event("file-loaded", reg_toggle_key)
 
 if opts.enabled == true then

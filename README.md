@@ -10,7 +10,7 @@ Uses MPV and a plugin to play a 3D side-by-side video as a 2D video, allows you 
 - Download the [360plugin.lua](https://raw.githubusercontent.com/dfaker/VR-reversal/master/360plugin.lua) plugin from this repo.
 - Play a video using the plugin with the command: `mpv --script=360plugin.lua --script-opts=360plugin-enabled=yes videoFile.mp4`
 
-If you want to enable this script automatically in your regular MPV, you can also place the `script-opts` directory in your MPV config directory along with the script in the `scripts` directory to activate auto-starting of the script every MPV session (change `enabled=yes` in the config file).
+If you want to enable this script automatically on startup in your regular MPV, you can place the config file from the `script-opts` directory in the corresponding MPV config directory, along with the script itself in MPV's `scripts` directory. To activate auto-starting of the script every MPV session, change `enabled=yes` in the config file.
 
 If you want to save the 2D versions videos rather than just watch them you'll need a recent version of ffmpeg from https://ffmpeg.org/ but it's not needed just for viewing.
 
