@@ -5,34 +5,37 @@
 -- The following default key bindings can also be reconfigured in the same way
 -- (including via CLI) without editing this script at all.
 local opts = {
-	enabled = false,
-	cycle_input="1",
-	cycle_output="2",
-	roll_left="u",
-	roll_right="o",
-	write_log="w",
-	pitch_up="i",
-	pitch_down="k",
-	yaw_up="l",
-	yaw_down="j",
-	easy_crop="c",
-	res_up="y",
-	res_down="h",
-	zoom_in="=",
-	zoom_out="-",
-	wzoom_out="WHEEL_DOWN",
-	wzoom_in="WHEEL_UP",
-	reset_view="0",
-	switch_stereo="r",
-	switch_eye="t",
-	switch_scaler="e",
-	toggle_smooth="g",
-	switch_bounds="b",
-	new_log_session="n",
-	grab_mouse="mouse_btn0",
-	mouse_pan="mouse_move",
-	show_help="?",
-	toggle_vr360="v",
+	["enabled"]=false,
+	["toggle_vr360"]="v",
+	["cycle_input"]="1",
+	["cycle_output"]="2",
+	["roll_left"]="u",
+	["roll_right"]="o",
+	["write_log"]="w",
+	["pitch_up"]="i",
+	["pitch_down"]="k",
+	["yaw_up"]="l",
+	["yaw_down"]="j",
+	["easy_crop"]="c",
+	["res_up"]="y",
+	["res_down"]="h",
+	["zoom_in"]="=",
+	["zoom_out"]="-",
+	["wzoom_out"]="WHEEL_DOWN",
+	["wzoom_in"]="WHEEL_UP",
+	["reset_view"]="0",
+	["switch_stereo"]="r",
+	["switch_eye"]="t",
+	["switch_scaler"]="e",
+	["toggle_smooth"]="g",
+	["switch_bounds"]="b",
+	["new_log_session"]="n",
+	["grab_mouse"]="mouse_btn0",
+	["mouse_pan"]="mouse_move",
+	["show_help"]="?",
+	["osc"]="no",
+	["fullscreen"]="yes",
+	["osd-font-size"]=30
 }
 (require 'mp.options').read_options(opts)
 
@@ -101,7 +104,7 @@ local fileobjectFilename = ''
 local videofilename = ''
 local file_object      = nil
 
-local ffmpegComamndList = {}
+local ffmpegCommandList = {}
 
 local openNewLogFile = function()
 	if lasttimePos ~= nil then
@@ -110,11 +113,10 @@ local openNewLogFile = function()
 	videofilename = mp.get_property('filename')
 	fileobjectFilename = string.format('%s_3dViewHistory_%s.txt',videofilename,fileobjectNumber)
 	file_object = io.open(fileobjectFilename, 'w')
-	lasttimePos=nil
+	lasttimePos = nil
 end
 
-
-function SecondsToClock(seconds)
+local SecondsToClock = function(seconds)
 	local seconds = tonumber(seconds)
 	if seconds <= 0 then
 		return "00:00:00";
@@ -122,12 +124,11 @@ function SecondsToClock(seconds)
 	hours = string.format("%02.f", math.floor(seconds/3600));
 	mins = string.format("%02.f", math.floor(seconds/60 - (hours*60)));
 	secs = string.format("%02.2f", seconds - hours*3600 - mins *60);
-		return hours..":"..mins..":"..secs
+		return hours .. ":" .. mins .. ":" .. secs
 	end
 end
 
 local writeHeadPositionChange = function()
-
 	if filename == nil then
 		filename = mp.get_property("path")
 	end
@@ -201,20 +202,17 @@ local writeHeadPositionChange = function()
 end
 
 local updateAwaiting = false
+
 local updateComplete = function()
 	updateAwaiting = false
 end
 
 local printRecordingStatus = function()
-	local startts = startTime
-	local endts   = lasttimePos
-	local currenttS = mp.get_property("time-pos")
-	if file_object ~= nil and endts ~= nil and startts ~= nil then
-		endts = math.max(endts,currenttS)
-		mp.osd_message(string.format("Recording:%s",SecondsToClock(endts-startts)),10)
+	lasttimePos = (mp.get_property("time-pos") or lasttimePos)
+	if file_object ~= nil and lasttimePos ~= nil and startTime ~= nil then
+		mp.osd_message(string.format("Recording:%s", SecondsToClock(lasttimePos - startTime)), 10)
 	end
 end
-
 
 local updateFilters = function ()
 	if not filterIsOn then
@@ -224,7 +222,6 @@ local updateFilters = function ()
 		updateAwaiting=true
 		mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
 	end
-	printRecordingStatus()
 	writeHeadPositionChange()
 end
 
@@ -236,7 +233,6 @@ local mouse_btn0_cb = function ()
 		mp.set_property("cursor-autohide", "no")
 	end 
 end
-
 
 local mouse_pan = function ()
 	if dragging then
@@ -342,7 +338,7 @@ local reset_view = function()
 	yaw = 0.0
 	roll = 0.0
 	pitch = 0.0
-	mp.osd_message(string.format("Reset view."), 0.5)
+	mp.osd_message("Reset view.", 0.5)
 	updateFilters()
 end
 
@@ -423,9 +419,9 @@ local switchStereoMode = function()
 	updateFilters()
 end
 
-local binding_by_name = function(_lookup)
+local binding_by_name = function(lookup)
 	for k, v in pairs(bindings) do
-		if v["name"] == _lookup then
+		if v["name"] == lookup then
 			return k
 		end
 	end
@@ -443,7 +439,7 @@ local build_help_string = function()
 	binding_by_name("switch_scaler"), 	" = switch scaler\n",
 	binding_by_name("toggle_smooth"), 	" = toggle mouse smoothing\n",
 	binding_by_name("new_log_session"),	" = start/stop motion recording\n",
-	binding_by_name("cycle_input"), ",", binding_by_name("cycle_output") , " = cycle in and out projections\n",
+	binding_by_name("cycle_input"), ",", binding_by_name("cycle_output"), " = cycle in and out projections\n",
 	binding_by_name("reset_view"), " = center view\n"
 	})
 end
@@ -459,22 +455,31 @@ end
 
 local closeCurrentLog = function()
 	commandForFinalLog=''
-	if lasttimePos ~= nil  and file_object ~= nil then
+	if lasttimePos ~= nil and file_object ~= nil then
 
 		finalTimeStamp = mp.get_property("time-pos")
+		-- Can be nil while the player is shutting down and the file is already closed
+		if finalTimeStamp == nil then
+			finalTimeStamp = lasttimePos
+		end
 
 		file_object:write('#\n')
 
- 		local stats = string.format( '# Duration: %s-%s (total %s) %s seconds', 
-			SecondsToClock(startTime),SecondsToClock(finalTimeStamp),SecondsToClock(finalTimeStamp-startTime),finalTimeStamp-startTime )
+ 		local stats = string.format('# Duration: %s-%s (total %s) %s seconds',
+			SecondsToClock(startTime),
+			SecondsToClock(finalTimeStamp),
+			SecondsToClock(finalTimeStamp - startTime),
+			finalTimeStamp - startTime
+		)
 
 		print('#')
-		file_object:write( stats  .. '\n')
+		file_object:write(stats .. '\n')
 		print(stats)
 
-		file_object:write( '# Suggested ffmpeg conversion command:\n')
+		file_object:write('# Suggested ffmpeg conversion command:\n')
 
-		local closingCommandComment = string.format('ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%.3f:roll=%.3f:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=%s_3dViewHistory_%s.txt" -avoid_negative_ts make_zero -preset slower -crf 17 "%s_2d_%03d.mp4"',
+		local closingCommandComment = string.format(
+			'ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=%s:%s:in_stereo=%s:out_stereo=2d:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%.3f:roll=%.3f:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=%s_3dViewHistory_%s.txt" -avoid_negative_ts make_zero -preset slower -crf 17 "%s_2d_%03d.mp4"',
 			startTime,filename,finalTimeStamp,in_flip,inputProjection,outputProjection,in_stereo,idfov,init_dfov,init_yaw,init_pitch,init_roll,h_flip,videofilename,fileobjectNumber,videofilename,fileobjectNumber
 		)
 
@@ -487,6 +492,8 @@ local closeCurrentLog = function()
 
 		commandForFinalLog = closingCommandComment
 	end
+	lasttimePos = nil
+	startTime = nil
 	if file_object ~= nil then
 		file_object:close()
 		file_object = nil
@@ -498,22 +505,21 @@ local startNewLogSession = function()
 	if file_object == nil then
 		openNewLogFile()
 		writeHeadPositionChange()
-		mp.osd_message(string.format("Start Motion Record %s_3dViewHistory_%s.txt",videofilename,fileobjectNumber),0.5)
+		mp.osd_message(string.format("Started Motion Record %s_3dViewHistory_%s.txt",videofilename,fileobjectNumber), 0.5)
 	else
-		mp.osd_message(string.format("Stop Motion Record %s_3dViewHistory_%s.txt",videofilename,fileobjectNumber),0.5)
+		mp.osd_message(string.format("Stopped Motion Record %s_3dViewHistory_%s.txt",videofilename,fileobjectNumber), 2.5)
 		writeHeadPositionChange()
 		local command = closeCurrentLog()
 		if command then
-			ffmpegComamndList[#ffmpegComamndList+1] = command
+			ffmpegCommandList[#ffmpegCommandList+1] = command
 		end
 	end
-		
 end
 
 local onExit = function()
 	closeCurrentLog()
 	mergedCommand = ''
-	for k,v in pairs(ffmpegComamndList) do
+	for _, v in pairs(ffmpegCommandList) do
 		if v ~= '' then
 			mergedCommand = mergedCommand .. ' & ' .. v
 		end
@@ -530,22 +536,49 @@ end
 
 local last_hwdec = nil
 
-local save_hwdec = function()
-	-- Workaround: hardware acceleration rarely works well, so we disable it.
-	-- Error: [ffmpeg] Impossible to convert between the formats supported by 
-	-- the filter 'mpv_src_default_in' and the filter 'auto_scaler_0'
-	local hwdec_opt = mp.get_property('hwdec')
-	last_hwdec = hwdec_opt
-	if string.find(hwdec_opt, "no") == nil then
-		mp.osd_message(string.format("Temporarily turned off hardware decoding."), 1.5)
-		mp.set_property("hwdec", "no")
+local saved_props = {
+	["hwdec"] 			= "NIL",
+	["fullscreen"] 		= "NIL",
+	["osc"] 			= "NIL",
+	["osd-font-size"] 	= "NIL"
+}
+
+local save_props = function()
+	for k, _ in pairs(saved_props) do
+		local propv = (mp.get_property(k) or "NIL")
+		saved_props[k] = propv
+
+		if k == "hwdec" and propv ~= "no" then
+			-- Workaround: hardware acceleration rarely works well, so we have to disable it.
+			-- Error: [ffmpeg] Impossible to convert between the formats supported by 
+			-- the filter 'mpv_src_default_in' and the filter 'auto_scaler_0'
+			mp.osd_message("Temporarily turning off hardware decoding.", 1.5)
+			mp.set_property("hwdec", "no")
+		end
 	end
 end
 
-local restore_hwdec = function()
-	-- Can be displayed in osd console with "show-text ${hwdec-current}"
-	mp.osd_message(string.format("Restoring hardware acceleration: %s", last_hwdec), 1.5)
-	mp.set_property("hwdec", last_hwdec)
+local restore_props = function()
+	for k, v in pairs(saved_props) do
+		if v == "NIL" then
+			goto continue
+		end
+		if k == "hwdec" then
+			-- Can also be displayed in osd console with "show-text ${hwdec-current}"
+			mp.osd_message(string.format("Restoring hardware acceleration: %s", v), 1.5)
+		end
+		mp.set_property(k, v)
+		::continue::
+	end
+
+	if mp.get_property("cursor-autohide") ~= "no" and dragging then
+		dragging = false
+		mp.set_property("cursor-autohide", "no")
+	end
+
+	for k, _ in pairs(saved_props) do
+		saved_props[k] = "NIL"
+	end
 end
 
 local restore_keybinds = function()
@@ -553,7 +586,7 @@ local restore_keybinds = function()
 	-- forcibly rebound by our script. They are still there after removal.
 	for k,v in pairs(bindings) do
 		if k == binding_by_name("toggle_vr360") then
-			print("Skipping key: " .. k)
+			print("Keeping key bind to toggle vr360: " .. k)
 			goto continue
 		end
 		mp.remove_key_binding(v["name"])
@@ -564,46 +597,52 @@ end
 local recordingStatusTimer = nil
 
 local initFunction = function()
+	save_props()
 	for key, pref in pairs(bindings) do
 		mp.add_forced_key_binding(key, pref["name"], pref["fn"], pref["flags"])
 	end
-	mp.set_property("osc", "no")
-	mp.set_property("fullscreen", "yes")
-	mp.set_property("osd-font-size", "30")
+
+	mp.set_property("osc", opts["osc"])
+	-- It seems not forcing fullscreen may cause minor issues. Use with caution.
+	mp.set_property("fullscreen", opts["fullscreen"])
+	mp.set_property("osd-font-size", opts["osd-font-size"])
 
 	mp.register_event("end-file", onExit)
 	mp.register_event("shutdown", onExit)
 
-	recordingStatusTimer = mp.add_periodic_timer(0.1,printRecordingStatus)
+	recordingStatusTimer = mp.add_periodic_timer(0.1, printRecordingStatus)
 
 	updateFilters()
 end
 
 local teardownFunction = function()
-	filterIsOn = false
-	updateAwaiting = true
-	mp.command_native({"no-osd", "vf", "remove", "@vrrev"}, updateComplete)
-	restore_hwdec()
-	restore_keybinds()
-	mp.unregister_event(onExit)
-	mp.unregister_event(onExit)
 	if recordingStatusTimer ~= nil and recordingStatusTimer:is_enabled() then
 		recordingStatusTimer:kill()
 		recordingStatusTimer = nil
 	end
+	filterIsOn = false
+	updateAwaiting = true
+	mp.unregister_event(onExit)
+	onExit()
+	-- Remove bindings before to avoid updating the filter with mouse movements
+	restore_keybinds()
+	-- Remove filter before restoring hardware acceleration to avoid potential errors
+	mp.command_native({"no-osd", "vf", "remove", "@vrrev"}, updateComplete)
+	restore_props()
 end
 
 local toggleVR = function()
-	opts.enabled = not opts.enabled
-	if opts.enabled then
-		save_hwdec()
+	if not opts.enabled then
+		opts.enabled = true
 		initFunction()
 		return
 	end
 	teardownFunction()
+	opts.enabled = false
 end
 
 bindings = {
+	[opts.toggle_vr360]		=	{name="toggle_vr360",	fn=toggleVR				},
 	[opts.cycle_input]		=	{name="cycle_input",	fn=cycleInputProjection },
 	[opts.cycle_output]		=	{name="cycle_output",	fn=cycleOutputProjection },
 	[opts.roll_left]		=	{name="roll_left",		fn=function() increment_roll(-1) end,	flags={repeatable=true}},
@@ -629,11 +668,10 @@ bindings = {
 	[opts.new_log_session]	=	{name="new_log_session",fn=startNewLogSession	},
 	[opts.grab_mouse]		=	{name="grab_mouse",		fn=mouse_btn0_cb		},
 	[opts.mouse_pan]		=	{name="mouse_pan",		fn=mouse_pan			},
-	[opts.show_help]		=	{name="show_help",		fn=showHelp				},
-	[opts.toggle_vr360]		=	{name="toggle_vr360",	fn=toggleVR				}
+	[opts.show_help]		=	{name="show_help",		fn=showHelp				}
 }
 
-local reg_toggle_key = function ()
+local register_toggle_key = function ()
 	-- mp.add_forced_key_binding("v", "toggle_vr360", toggleVR)
 	for k,v in pairs(bindings) do
 		if v["name"] == "toggle_vr360" then
@@ -643,9 +681,8 @@ local reg_toggle_key = function ()
 	end
 end
 
-mp.register_event("file-loaded", reg_toggle_key)
+register_toggle_key()
 
 if opts.enabled == true then
-	save_hwdec()
 	initFunction()
 end
