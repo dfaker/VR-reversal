@@ -39,6 +39,14 @@ local opts = {
 }
 (require 'mp.options').read_options(opts)
 
+local saved_props = {
+	["hwdec"] 			= "NIL",
+	["fullscreen"] 		= "NIL",
+	["osc"] 			= "NIL",
+	["osd-font-size"] 	= "NIL",
+	["cursor-autohide"] = "NIL"
+}
+
 local yaw   = 0.0
 local last_yaw = 0.0
 local init_yaw = 0.0
@@ -230,7 +238,7 @@ local mouse_btn0_cb = function ()
 	if dragging then
 		mp.set_property("cursor-autohide", "always")
 	else
-		mp.set_property("cursor-autohide", "no")
+		mp.set_property("cursor-autohide", saved_props["cursor-autohide"])
 	end 
 end
 
@@ -534,15 +542,6 @@ local onExit = function()
 	end
 end
 
-local last_hwdec = nil
-
-local saved_props = {
-	["hwdec"] 			= "NIL",
-	["fullscreen"] 		= "NIL",
-	["osc"] 			= "NIL",
-	["osd-font-size"] 	= "NIL"
-}
-
 local save_props = function()
 	for k, _ in pairs(saved_props) do
 		local propv = (mp.get_property(k) or "NIL")
@@ -569,11 +568,6 @@ local restore_props = function()
 		end
 		mp.set_property(k, v)
 		::continue::
-	end
-
-	if mp.get_property("cursor-autohide") ~= "no" and dragging then
-		dragging = false
-		mp.set_property("cursor-autohide", "no")
 	end
 
 	for k, _ in pairs(saved_props) do
