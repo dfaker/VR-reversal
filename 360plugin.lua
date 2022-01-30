@@ -27,6 +27,7 @@ local opts = {
 	["switch_stereo"]="r",
 	["switch_eye"]="t",
 	["switch_scaler"]="e",
+	["switch_output_sbs"]="p",
 	["toggle_smooth"]="g",
 	["switch_bounds"]="b",
 	["new_log_session"]="n",
@@ -78,6 +79,8 @@ local outputProjections = {
 local outputProjectionInd = 0
 local outputProjection    = "flat"
 
+
+
 local idfov=180.0
 local dfov=110.0
 local last_dfov  = 110.0
@@ -93,6 +96,8 @@ local smoothMouse = true
 local scaling   = 'linear'
 
 local in_stereo = 'sbs'
+local out_stereo = '2d'
+local sarOutput = 1.0
 
 local h_flip    = '0'
 local in_flip   = ''
@@ -224,11 +229,11 @@ end
 
 local updateFilters = function ()
 	if not filterIsOn then
-		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:reset_rot=1:in_stereo=%s:out_stereo=sbs:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
+		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:reset_rot=1:in_stereo=%s:out_stereo=%s:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s,setsar=sar=%.3f",in_flip,inputProjection,outputProjection,in_stereo,out_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling,sarOutput)}, updateComplete)
 		filterIsOn=true
 	elseif not updateAwaiting then
 		updateAwaiting=true
-		mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:reset_rot=1:in_stereo=%s:out_stereo=sbs:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s",in_flip,inputProjection,outputProjection,in_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling)}, updateComplete)
+		mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:reset_rot=1:in_stereo=%s:out_stereo=%s:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s,setsar=sar=%.3f",in_flip,inputProjection,outputProjection,in_stereo,out_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling,sarOutput)}, updateComplete)
 	end
 	writeHeadPositionChange()
 end
@@ -359,6 +364,16 @@ local toggleSmoothMouse  = function()
 	end
 end
 
+local switchoutputsbs = function()
+	if out_stereo == 'sbs' then
+		out_stereo = '2d'
+		sarOutput = 1.0
+	elseif out_stereo ~= 'sbs' then
+		out_stereo = 'sbs'
+		sarOutput = 0.5
+	end
+end
+
 local switchScaler = function()
 	if scaling == 'nearest' then
 		scaling = 'cubic'
@@ -445,6 +460,7 @@ local build_help_string = function()
 	binding_by_name("switch_stereo"),	" = switch stereo Mode\n",
 	binding_by_name("switch_eye"), 		" = switch eye side\n",
 	binding_by_name("switch_scaler"), 	" = switch scaler\n",
+	binding_by_name("switch_output_sbs"), 	" = toggle side by side output\n",
 	binding_by_name("toggle_smooth"), 	" = toggle mouse smoothing\n",
 	binding_by_name("new_log_session"),	" = start/stop motion recording\n",
 	binding_by_name("cycle_input"), ",", binding_by_name("cycle_output"), " = cycle in and out projections\n",
@@ -487,8 +503,8 @@ local closeCurrentLog = function()
 		file_object:write('# Suggested ffmpeg conversion command:\n')
 
 		local closingCommandComment = string.format(
-			'ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=%s:%s:in_stereo=%s:out_stereo=sbs:reset_rot=1:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%.3f:roll=%.3f:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,sendcmd=filename=%s_3dViewHistory_%s.txt" -avoid_negative_ts make_zero -preset slower -crf 17 "%s_2d_%03d.mp4"',
-			startTime,filename,finalTimeStamp,in_flip,inputProjection,outputProjection,in_stereo,idfov,init_dfov,init_yaw,init_pitch,init_roll,h_flip,videofilename,fileobjectNumber,videofilename,fileobjectNumber
+			'ffmpeg -y -ss %s -i "%s" -to %s -copyts -filter_complex "%sv360=%s:%s:in_stereo=%s:out_stereo=%s:reset_rot=1:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%.3f:roll=%.3f:w=1920.0:h=1080.0:interp=cubic:h_flip=%s,setsar=sar=%.3f,sendcmd=filename=%s_3dViewHistory_%s.txt" -avoid_negative_ts make_zero -preset slower -crf 17 "%s_2d_%03d.mp4"',
+			startTime,filename,finalTimeStamp,in_flip,inputProjection,outputProjection,in_stereo,out_stereo,idfov,init_dfov,init_yaw,init_pitch,init_roll,h_flip,videofilename,fileobjectNumber,videofilename,fileobjectNumber,sarOutput
 		)
 
 				
@@ -636,9 +652,9 @@ local toggleVR = function()
 end
 
 bindings = {
-	[opts.toggle_vr360]		=	{name="toggle_vr360",	fn=toggleVR				},
-	[opts.cycle_input]		=	{name="cycle_input",	fn=cycleInputProjection },
-	[opts.cycle_output]		=	{name="cycle_output",	fn=cycleOutputProjection },
+	[opts.toggle_vr360]		=	{name="toggle_vr360",		fn=toggleVR		},
+	[opts.cycle_input]		=	{name="cycle_input",		fn=cycleInputProjection },
+	[opts.cycle_output]		=	{name="cycle_output",		fn=cycleOutputProjection },
 	[opts.roll_left]		=	{name="roll_left",		fn=function() increment_roll(-1) end,	flags={repeatable=true}},
 	[opts.roll_right]		=	{name="roll_right",		fn=function() increment_roll(1) end,	flags={repeatable=true}},
 	[opts.write_log]		=	{name="write_log",		fn=writeHeadPositionChange },
@@ -654,15 +670,16 @@ bindings = {
 	[opts.wzoom_out]		=	{name="wzoom_out",		fn=function() increment_zoom(1) end },
 	[opts.wzoom_in] 		=	{name="wzoom_in",		fn=function() increment_zoom(-1) end },
 	[opts.reset_view] 		=	{name="reset_view",		fn=reset_view 			},
-	[opts.switch_stereo]	=	{name="switch_stereo",	fn=switchStereoMode		},
+	[opts.switch_stereo]		=	{name="switch_stereo",		fn=switchStereoMode		},
 	[opts.switch_eye]		=	{name="switch_eye",		fn=switchEye			},
-	[opts.switch_scaler]	=	{name="switch_scaler",	fn=switchScaler			},
-	[opts.toggle_smooth]	=	{name="toggle_smooth",	fn=toggleSmoothMouse	},
-	[opts.switch_bounds]	=	{name="switch_bounds",	fn=switchInputFovBounds	},
-	[opts.new_log_session]	=	{name="new_log_session",fn=startNewLogSession	},
-	[opts.grab_mouse]		=	{name="grab_mouse",		fn=mouse_btn0_cb		},
-	[opts.mouse_pan]		=	{name="mouse_pan",		fn=mouse_pan			},
-	[opts.show_help]		=	{name="show_help",		fn=showHelp				}
+	[opts.switch_scaler]		=	{name="switch_scaler",		fn=switchScaler			},
+	[opts.switch_output_sbs]	=	{name="switch_output_sbs",	fn=switchoutputsbs		},	
+	[opts.toggle_smooth]		=	{name="toggle_smooth",		fn=toggleSmoothMouse	},
+	[opts.switch_bounds]		=	{name="switch_bounds",		fn=switchInputFovBounds	},
+	[opts.new_log_session]		=	{name="new_log_session",	fn=startNewLogSession	},
+	[opts.grab_mouse]		=	{name="grab_mouse",		fn=mouse_btn0_cb},
+	[opts.mouse_pan]		=	{name="mouse_pan",		fn=mouse_pan	},
+	[opts.show_help]		=	{name="show_help",		fn=showHelp	}
 }
 
 local register_toggle_key = function ()
