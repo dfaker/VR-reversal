@@ -95,8 +95,11 @@ local smoothMouse = true
 
 local scaling   = 'linear'
 
-local in_stereo = 'sbs'
+ 
+local in_stereo  = 'sbs'
+local outputMode = '2d'
 local out_stereo = '2d'
+local anaglyph_filter = ""
 local sarOutput = 1.0
 
 local h_flip    = '0'
@@ -229,11 +232,11 @@ end
 
 local updateFilters = function ()
 	if not filterIsOn then
-		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:reset_rot=1:in_stereo=%s:out_stereo=%s:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s,setsar=sar=%.3f",in_flip,inputProjection,outputProjection,in_stereo,out_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling,sarOutput)}, updateComplete)
+		mp.command_native_async({"no-osd", "vf", "add", string.format("@vrrev:%sv360=%s:%s:reset_rot=1:in_stereo=%s:out_stereo=%s:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s,setsar=sar=%.3f%s",in_flip,inputProjection,outputProjection,in_stereo,out_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling,sarOutput,anaglyph_filter)}, updateComplete)
 		filterIsOn=true
 	elseif not updateAwaiting then
 		updateAwaiting=true
-		mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:reset_rot=1:in_stereo=%s:out_stereo=%s:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s,setsar=sar=%.3f",in_flip,inputProjection,outputProjection,in_stereo,out_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling,sarOutput)}, updateComplete)
+		mp.command_native_async({"no-osd", "vf", "set", string.format("@vrrev:%sv360=%s:%s:reset_rot=1:in_stereo=%s:out_stereo=%s:id_fov=%s:d_fov=%.3f:yaw=%.3f:pitch=%s:roll=%.3f:w=%s*192.0:h=%.3f*108.0:h_flip=%s:interp=%s,setsar=sar=%.3f%s",in_flip,inputProjection,outputProjection,in_stereo,out_stereo,idfov,dfov,yaw,pitch,roll,res,res,h_flip,scaling,sarOutput,anaglyph_filter)}, updateComplete)
 	end
 	writeHeadPositionChange()
 end
@@ -365,13 +368,44 @@ local toggleSmoothMouse  = function()
 end
 
 local switchoutputsbs = function()
-	if out_stereo == 'sbs' then
+	if outputMode == 'sbs2l:arcd' then
 		out_stereo = '2d'
+		outputMode = '2d'
+		anaglyph_filter=""
 		sarOutput = 1.0
-	elseif out_stereo ~= 'sbs' then
+		mp.osd_message("2d output mode")
+	elseif outputMode == '2d' then
 		out_stereo = 'sbs'
+		outputMode = 'sbs'
+		anaglyph_filter=""
+		sarOutput = 1.0
+		mp.osd_message("Side by side full width output mode")
+	elseif outputMode == 'sbs' then
+		out_stereo = 'sbs'
+		outputMode = 'sbs-hw'
+		anaglyph_filter=""
 		sarOutput = 0.5
+		mp.osd_message("side by side half width output mode")
+	elseif outputMode == 'sbs-hw' then
+		out_stereo = 'sbs'
+		outputMode = 'sbs2l:arcg'
+		anaglyph_filter=",stereo3d=sbs2l:arcg"
+		sarOutput = 0.5
+		mp.osd_message("Red cyan gray/monochrome anaglyph output mode")
+	elseif outputMode == 'sbs2l:arcg' then
+		out_stereo = 'sbs'
+		outputMode = 'sbs2l:arbg'
+		anaglyph_filter=",stereo3d=sbs2l:arbg"
+		sarOutput = 0.5
+		mp.osd_message("Red blue gray/monochrome anaglyph output mode")
+	elseif outputMode == 'sbs2l:arbg' then
+		out_stereo = 'sbs'
+		outputMode = 'sbs2l:arcd'
+		anaglyph_filter=",stereo3d=sbs2l:arcd"
+		sarOutput = 0.5
+		mp.osd_message("Red cyan dubois anaglyph output mode")
 	end
+	updateFilters()
 end
 
 local switchScaler = function()
@@ -652,34 +686,34 @@ local toggleVR = function()
 end
 
 bindings = {
-	[opts.toggle_vr360]		=	{name="toggle_vr360",		fn=toggleVR		},
+	[opts.toggle_vr360]		=	{name="toggle_vr360",		fn=toggleVR				},
 	[opts.cycle_input]		=	{name="cycle_input",		fn=cycleInputProjection },
 	[opts.cycle_output]		=	{name="cycle_output",		fn=cycleOutputProjection },
-	[opts.roll_left]		=	{name="roll_left",		fn=function() increment_roll(-1) end,	flags={repeatable=true}},
-	[opts.roll_right]		=	{name="roll_right",		fn=function() increment_roll(1) end,	flags={repeatable=true}},
-	[opts.write_log]		=	{name="write_log",		fn=writeHeadPositionChange },
-	[opts.pitch_up]			=	{name="pitch_up",		fn=function() increment_pitch(1) end,	flags={repeatable=true}},
-	[opts.pitch_down]		=	{name="pitch_down",		fn=function() increment_pitch(-1) end,	flags={repeatable=true}},
-	[opts.yaw_up]			=	{name="yaw_up",			fn=function() increment_yaw(1) end,		flags={repeatable=true}},
-	[opts.yaw_down]			=	{name="yaw_down",		fn=function() increment_yaw(-1) end,	flags={repeatable=true}},
-	[opts.easy_crop]		=	{name="easy_crop",		fn=updateFilters,						flags={repeatable=true}},
-	[opts.res_up]			=	{name="res_up",			fn=function() increment_res(1) end,		flags={repeatable=true}},
-	[opts.res_down]			=	{name="res_down",		fn=function() increment_res(-1) end,	flags={repeatable=true}},
-	[opts.zoom_in]			=	{name="zoom_in",		fn=function() increment_zoom(-1) end,	flags={repeatable=true}},
-	[opts.zoom_out]			=	{name="zoom_out",		fn=function() increment_zoom(1) end,	flags={repeatable=true}},
-	[opts.wzoom_out]		=	{name="wzoom_out",		fn=function() increment_zoom(1) end },
-	[opts.wzoom_in] 		=	{name="wzoom_in",		fn=function() increment_zoom(-1) end },
-	[opts.reset_view] 		=	{name="reset_view",		fn=reset_view 			},
-	[opts.switch_stereo]		=	{name="switch_stereo",		fn=switchStereoMode		},
-	[opts.switch_eye]		=	{name="switch_eye",		fn=switchEye			},
-	[opts.switch_scaler]		=	{name="switch_scaler",		fn=switchScaler			},
-	[opts.switch_output_sbs]	=	{name="switch_output_sbs",	fn=switchoutputsbs		},	
-	[opts.toggle_smooth]		=	{name="toggle_smooth",		fn=toggleSmoothMouse	},
-	[opts.switch_bounds]		=	{name="switch_bounds",		fn=switchInputFovBounds	},
-	[opts.new_log_session]		=	{name="new_log_session",	fn=startNewLogSession	},
-	[opts.grab_mouse]		=	{name="grab_mouse",		fn=mouse_btn0_cb},
-	[opts.mouse_pan]		=	{name="mouse_pan",		fn=mouse_pan	},
-	[opts.show_help]		=	{name="show_help",		fn=showHelp	}
+	[opts.roll_left]		=	{name="roll_left",			fn=function() increment_roll(-1) end,	flags={repeatable=true}},
+	[opts.roll_right]		=	{name="roll_right",			fn=function() increment_roll(1) end,	flags={repeatable=true}},
+	[opts.write_log]		=	{name="write_log",			fn=writeHeadPositionChange },
+	[opts.pitch_up]			=	{name="pitch_up",			fn=function() increment_pitch(1) end,	flags={repeatable=true}},
+	[opts.pitch_down]		=	{name="pitch_down",			fn=function() increment_pitch(-1) end,	flags={repeatable=true}},
+	[opts.yaw_up]			=	{name="yaw_up",				fn=function() increment_yaw(1) end,		flags={repeatable=true}},
+	[opts.yaw_down]			=	{name="yaw_down",			fn=function() increment_yaw(-1) end,	flags={repeatable=true}},
+	[opts.easy_crop]		=	{name="easy_crop",			fn=updateFilters,						flags={repeatable=true}},
+	[opts.res_up]			=	{name="res_up",				fn=function() increment_res(1) end,		flags={repeatable=true}},
+	[opts.res_down]			=	{name="res_down",			fn=function() increment_res(-1) end,	flags={repeatable=true}},
+	[opts.zoom_in]			=	{name="zoom_in",			fn=function() increment_zoom(-1) end,	flags={repeatable=true}},
+	[opts.zoom_out]			=	{name="zoom_out",			fn=function() increment_zoom(1) end,	flags={repeatable=true}},
+	[opts.wzoom_out]		=	{name="wzoom_out",			fn=function() increment_zoom(1) end },
+	[opts.wzoom_in] 		=	{name="wzoom_in",			fn=function() increment_zoom(-1) end },
+	[opts.reset_view] 		=	{name="reset_view",			fn=reset_view 			},
+	[opts.switch_stereo]	=	{name="switch_stereo",		fn=switchStereoMode		},
+	[opts.switch_eye]		=	{name="switch_eye",			fn=switchEye			},
+	[opts.switch_scaler]	=	{name="switch_scaler",		fn=switchScaler			},
+	[opts.switch_output_sbs]=	{name="switch_output_sbs",	fn=switchoutputsbs		},	
+	[opts.toggle_smooth]	=	{name="toggle_smooth",		fn=toggleSmoothMouse	},
+	[opts.switch_bounds]	=	{name="switch_bounds",		fn=switchInputFovBounds	},
+	[opts.new_log_session]	=	{name="new_log_session",	fn=startNewLogSession	},
+	[opts.grab_mouse]		=	{name="grab_mouse",			fn=mouse_btn0_cb		},
+	[opts.mouse_pan]		=	{name="mouse_pan",			fn=mouse_pan			},
+	[opts.show_help]		=	{name="show_help",			fn=showHelp				}
 }
 
 local register_toggle_key = function ()
