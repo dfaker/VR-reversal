@@ -61,6 +61,7 @@ Advanced projection controls:
 - `b` cycle input fov bounds between 180,360 and 90
 - `1` cycle through input projections
 - `2` cycle through output projections
+- `p` cycle through 2D output modes including flat 2D, reprojected side by side and anaglyph modes.
 
 Most of the standard default MPV controls are maintained:
 
