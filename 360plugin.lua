@@ -434,7 +434,7 @@ local switchEye = function()
 		in_flip = ''
 		mp.osd_message("Left eye",0.5)
 	end
-	print(ih_flip,h_flip)
+	print(in_flip,h_flip)
 	updateFilters()
 end
 
