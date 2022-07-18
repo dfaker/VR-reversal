@@ -609,15 +609,13 @@ end
 
 local restore_props = function()
 	for k, v in pairs(saved_props) do
-		if v == "NIL" then
-			goto continue
+		if v ~= "NIL" then
+			if k == "hwdec" then
+				-- Can also be displayed in osd console with "show-text ${hwdec-current}"
+				mp.osd_message(string.format("Restoring hardware acceleration: %s", v), 1.5)
+			end
+			mp.set_property(k, v)
 		end
-		if k == "hwdec" then
-			-- Can also be displayed in osd console with "show-text ${hwdec-current}"
-			mp.osd_message(string.format("Restoring hardware acceleration: %s", v), 1.5)
-		end
-		mp.set_property(k, v)
-		::continue::
 	end
 
 	for k, _ in pairs(saved_props) do
@@ -631,10 +629,9 @@ local restore_keybinds = function()
 	for k,v in pairs(bindings) do
 		if k == binding_by_name("toggle_vr360") then
 			print("Keeping key bind to toggle vr360: " .. k)
-			goto continue
+		else
+			mp.remove_key_binding(v["name"])
 		end
-		mp.remove_key_binding(v["name"])
-		::continue::
 	end
 end
 
