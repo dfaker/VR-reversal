@@ -68,7 +68,7 @@ local inputProjections = {
 	"cylindrical",
 	"sg"
 }
-local inputProjectionInd = 0
+local inputProjectionInd = 1
 local inputProjection    = "hequirect"
 
 local outputProjections = {
@@ -76,7 +76,7 @@ local outputProjections = {
 	"sg"
 }
 
-local outputProjectionInd = 0
+local outputProjectionInd = 1
 local outputProjection    = "flat"
 
 
@@ -440,14 +440,14 @@ end
 
 
 local cycleInputProjection = function()
-	inputProjectionInd = ((inputProjectionInd+1) % (#inputProjections +1))
+	inputProjectionInd = inputProjectionInd % #inputProjections + 1
 	inputProjection    = inputProjections[inputProjectionInd]
 	mp.osd_message(string.format("Input projection: %s ",inputProjection),0.5)
 	updateFilters()
 end
 
 local cycleOutputProjection = function()
-	outputProjectionInd = ((outputProjectionInd+1) % (#outputProjections + 1))
+	outputProjectionInd = outputProjectionInd % #outputProjections + 1
 	outputProjection    = outputProjections[outputProjectionInd]
 	mp.osd_message(string.format("Output projection: %s",outputProjection),0.5)
 	updateFilters()
